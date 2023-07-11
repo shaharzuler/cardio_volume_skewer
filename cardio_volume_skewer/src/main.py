@@ -8,19 +8,6 @@ import os
 from cardio_volume_skewer import VolumeSkewer, create_video_from_xys_seqs
 
 
-def _read_ct_and_mask(timestep, save_nrrd=False):
-    img3d_path = f"/home/shahar/data/cardiac_3d_data/{timestep}/orig/voxels/xyz_arr_raw.npy"
-    mask_path = f"/home/shahar/data/cardiac_3d_data/{timestep}/orig/voxels/xyz_voxels_mask_smooth.npy"
-    img3d = np.load(img3d_path)
-    mask = np.load(mask_path)
-    print(img3d.shape, mask.shape)
-
-    if save_nrrd:
-        np.save("ct_scan", img3d)
-        np.save("binary_mask", mask)
-
-    return img3d, mask
-
 def _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, nrrds_dir):
     x_seq = []
     y_seq = []
@@ -42,10 +29,7 @@ def _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, nrrds_dir)
     return x_seq, y_seq, z_seq
 
 
-def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, output_dir, template_timestep=None):
-    if template_timestep is None:
-        template_timestep = 18 if r1s_end<=1 else 28
-
+def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, output_dir, template_3dimg_path, template_mask_path):
     num_frames = 5
 
     r1s_start = 1.0
@@ -60,12 +44,11 @@ def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, 
     theta2s = np.linspace( theta2s_start, theta2s_end, num_frames + 1 )
     hs      = np.linspace( hs_start,      hs_end,      num_frames + 1 )
 
-    
     output_subdir = f"thetas_{round(theta1s_end,2)}_{round(theta2s_end,2)}_rs_{round(r1s_end,2)}_{round(r2s_end,2)}_h_{round(hs_end,2)}"
     output_dir = os.path.join(output_dir, output_subdir)
 
-
-    three_d_image, binary_mask = _read_ct_and_mask(timestep=template_timestep)
+    three_d_image = np.load(template_3dimg_path)
+    binary_mask = np.load(template_mask_path)
     volume_skewer =  VolumeSkewer(warping_borders_pad='zeros', img_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest')
     for r1, r2, theta1, theta2, h in zip(r1s, r2s, theta1s, theta2s, hs):
         print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
