@@ -1,29 +1,22 @@
-# TODO fix opposite flow direction
-# TODO automatically copy orig image to be the first image
-# TODO add pad type as a param
-
-from typing import List, Tuple
+from typing import Tuple
 import numpy as np
 from scipy import ndimage
-from matplotlib import pyplot as plt
 import math
 from scipy.spatial.transform import Rotation as R
 import nrrd
-from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
+from scipy.interpolate import LinearNDInterpolator
 import torch
 from torch import nn
 import patchify
-import time 
 import os
-import scipy
-import cv2
 
-from data_handling.fourdct_heart_data_handler import images_to_3dnump
+
 
 
 class VolumeSkewer:
-    def __init__(self, save_nrrd:bool=True, zero_outside_mask:bool=True, warping_borders_pad='zeros', warping_interp_mode='bilinear'):
+    def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, warping_borders_pad='zeros', warping_interp_mode='bilinear'):
         self.save_nrrd = save_nrrd
+        self.save_npy = save_npy
         self.zero_outside_mask = zero_outside_mask
         self.warping_borders_pad=warping_borders_pad
         self.warping_interp_mode = warping_interp_mode
@@ -32,6 +25,7 @@ class VolumeSkewer:
         self.three_d_image = three_d_image
         self.three_d_binary_mask = three_d_binary_mask
         self.output_dir = output_dir
+        os.makedirs(output_dir, exist_ok=True)
         self.theta1 = theta1
         self.theta2 = theta2        
         self.r1 = r1
@@ -74,6 +68,8 @@ class VolumeSkewer:
         self.skewed_three_d_image = self.flow_warp(self.three_d_image, self.cropped_flow, warping_borders_pad=self.warping_borders_pad, warping_interp_mode=self.warping_interp_mode)
         if self.save_nrrd:
             self.save_nrrds()
+        if self.save_npy:
+            self.save_npys()
 
         return self.skewed_three_d_image
 
@@ -158,7 +154,7 @@ class VolumeSkewer:
         nan_indices = np.isnan(flow_field_axis)
         main_points_indices = np.logical_not(nan_indices)
         main_points_data = flow_field_axis[main_points_indices]
-        interp = interpolator(list(zip(*main_points_indices.nonzero())), main_points_data) # LinearNDInterpolator(list(zip(*main_points_indices.nonzero())), main_points_data)
+        interp = interpolator(list(zip(*main_points_indices.nonzero())), main_points_data) 
         flow_field_axis[nan_indices] = interp(*nan_indices.nonzero())
         
         return flow_field_axis
@@ -205,7 +201,7 @@ class VolumeSkewer:
         flow_field_rotated[valid_coords[:, 0], valid_coords[:, 1], valid_coords[:, 2]] = (np.dot(valid_flow_vals, rotation_matrix.T))
         return flow_field_rotated
 
-    def flow_warp(self, img:np.array, flow:np.array, warping_borders_pad:str, warping_interp_mode:str)->np.array:
+    def flow_warp(self, img:np.array, flow:np.array, warping_borders_pad:str, warping_interp_mode:str)->np.array: #TODO move to flow utils package
         flow = np.rollaxis(flow,-1)
         flow = torch.tensor(flow)
         flow = torch.unsqueeze(flow,0)
@@ -221,17 +217,17 @@ class VolumeSkewer:
 
         return img_warped[0,0,:,:,:].cpu().numpy()
 
-    def mesh_grid(self, B:int, H:int, W:int, D:int)->np.array:
+    def mesh_grid(self, B:int, H:int, W:int, D:int)->np.array: #TODO move to flow utils package
         # batches not implented
         x = torch.arange(H)
         y = torch.arange(W)
         z = torch.arange(D)
-        mesh = torch.stack(torch.meshgrid(x, y, z)[::-1], 0) # torch.stack(torch.meshgrid(x, y, z), 0) # 
+        mesh = torch.stack(torch.meshgrid(x, y, z)[::-1], 0) 
 
         mesh = mesh.unsqueeze(0)
         return mesh.repeat([B,1,1,1,1])
 
-    def norm_grid(self, v_grid:np.array)->np.array:
+    def norm_grid(self, v_grid:np.array)->np.array: #TODO move to flow utils package
         """scale grid to [-1,1]"""
         _, _, H, W, D = v_grid.size()
         v_grid_norm = torch.zeros_like(v_grid)
@@ -246,202 +242,20 @@ class VolumeSkewer:
         nrrd.write(os.path.join(self.output_dir, f'img_orig_thetas{suffix}.nrrd'), self.three_d_image)
         nrrd.write(os.path.join(self.output_dir,f'img_skewed{suffix}.nrrd'), self.skewed_three_d_image)
         nrrd.write(os.path.join(self.output_dir,f'img_diff{suffix}.nrrd'), self.skewed_three_d_image - self.three_d_image)
-        nrrd.write(os.path.join(self.output_dir,f"flow{suffix}.nrrd"),self.cropped_flow[:,:,:,0]**2 + self.cropped_flow[:,:,:,1]**2 + self.cropped_flow[:,:,:,2]**2)
+        nrrd.write(os.path.join(self.output_dir,f"flow_magnitude{suffix}.nrrd"), self.cropped_flow[:,:,:,0]**2 + self.cropped_flow[:,:,:,1]**2 + self.cropped_flow[:,:,:,2]**2)
+
+    def save_npys(self)->None:
+        suffix = f"_thetas_{round(self.theta1,2)}_{round(self.theta2,2)}_rs_{round(self.r1,2)}_{round(self.r2,2)}_h_{round(self.h,2)}"
+        np.save(os.path.join(self.output_dir, f'img_orig_thetas{suffix}.npy'), self.three_d_image)
+        np.save(os.path.join(self.output_dir,f'img_skewed{suffix}.npy'), self.skewed_three_d_image)
+        np.save(os.path.join(self.output_dir,f'img_diff{suffix}.npy'), self.skewed_three_d_image - self.three_d_image)
+        np.save(os.path.join(self.output_dir,f"flow_magnitude{suffix}.npy"), self.cropped_flow[:,:,:,0]**2 + self.cropped_flow[:,:,:,1]**2 + self.cropped_flow[:,:,:,2]**2)
+        np.save(os.path.join(self.output_dir,f"flow{suffix}.npy"), self.cropped_flow)
+
+
 
     @staticmethod
     def extract_shell_from_mask(three_d_binary_mask:np.array) -> np.array:
         erosed_mask = ndimage.binary_erosion(three_d_binary_mask)
         three_d_shell = np.logical_xor(three_d_binary_mask, erosed_mask)
         return three_d_shell
-
-class VideoUtils:
-    def __init__(self) -> None:
-        pass
-
-    @staticmethod
-    def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq:List[np.array], filename:str, crop_pad:int=0, gap_bet_images=16) -> None:
-        print(f"Saving video {filename}")
-        frameSize = z_seq[0].shape[0] + gap_bet_images + y_seq[0].shape[0], z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1]
-        out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 10, (frameSize[1],frameSize[0]))
-        max_val = max(np.array(x_seq).max(), np.array(y_seq).max(), np.array(z_seq).max())
-        for frame_x, frame_y, frame_z in zip(x_seq, y_seq, z_seq):
-
-            frame = np.zeros(frameSize)
-
-            frame_x_norm = ( (frame_x / max_val) * 255).astype(np.uint8)
-            frame_y_norm = ( (frame_y / max_val) * 255).astype(np.uint8)
-            frame_z_norm = ( (frame_z / max_val) * 255).astype(np.uint8)
-
-            frame[                                   : frame_z.shape[0]                                    ,                                   : frame_z.shape[1]                                     ] = frame_z_norm
-            frame[                                   : frame_z.shape[0]                                    , frame_z.shape[1] + gap_bet_images : frame_z.shape[1] + gap_bet_images + frame_x.shape[1] ] = frame_x_norm
-            frame[ frame_z.shape[0] + gap_bet_images : frame_z.shape[0] + gap_bet_images + frame_y.shape[0], frame_z.shape[1] + gap_bet_images : frame_z.shape[1] + gap_bet_images + frame_y.shape[1] ] = frame_y_norm
-
-            frame = cv2.applyColorMap(frame.astype(np.uint8), cv2.COLORMAP_BONE)
-            out.write(frame)
-
-        out.release()
-
-        if crop_pad>0:
-            frameSize = z_seq[0].shape[0] + gap_bet_images + y_seq[0].shape[0] - 4 * crop_pad, z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1] - 4 * crop_pad
-            out = cv2.VideoWriter("vid_crop.avi", cv2.VideoWriter_fourcc(*'XVID'), 10, (frameSize[1],frameSize[0]))
-            max_val = max(np.array(x_seq).max(), np.array(y_seq).max(), np.array(z_seq).max())
-            for frame_x, frame_y, frame_z in zip(x_seq, y_seq, z_seq):
-
-                frame = np.zeros(frameSize)
-
-                frame_x_norm = ( (frame_x / max_val) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
-                frame_y_norm = ( (frame_y / max_val) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
-                frame_z_norm = ( (frame_z / max_val) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
-
-                frame[                                        : frame_z_norm.shape[0]                                         ,                                        : frame_z_norm.shape[1]                                          ] = frame_z_norm
-                frame[                                        : frame_z_norm.shape[0]                                         , frame_z_norm.shape[1] + gap_bet_images : frame_z_norm.shape[1] + gap_bet_images + frame_x_norm.shape[1] ] = frame_x_norm
-                frame[ frame_z_norm.shape[0] + gap_bet_images : frame_z_norm.shape[0] + gap_bet_images + frame_y_norm.shape[0], frame_z_norm.shape[1] + gap_bet_images : frame_z_norm.shape[1] + gap_bet_images + frame_y_norm.shape[1] ] = frame_y_norm
-
-                frame = cv2.applyColorMap(frame.astype(np.uint8), cv2.COLORMAP_BONE)
-                out.write(frame)
-
-            out.release()
-
-    @staticmethod
-    def create_video_from_4d_arr(patient_4d_scan_arr, output_dir, filename):
-        print(f"Saving video {filename}")
-        frameSize = patient_4d_scan_arr.shape[2]+70+2*patient_4d_scan_arr.shape[1], patient_4d_scan_arr.shape[3]
-        out = cv2.VideoWriter(os.path.join(output_dir, filename), cv2.VideoWriter_fourcc(*'XVID'), 15, (frameSize[1],frameSize[0]))
-        for timestep in range(patient_4d_scan_arr.shape[0]):
-            # frame = ((patient_4d_scan_arr[timestep,patient_4d_scan_arr.shape[1]//2,:,:]/patient_4d_scan_arr.max())*255).astype(np.uint8)
-
-            frame_x = ((patient_4d_scan_arr[timestep,patient_4d_scan_arr.shape[1]//2,:,:]/patient_4d_scan_arr.max())*255).astype(np.uint8)
-            frame_y = ((patient_4d_scan_arr[timestep,:,patient_4d_scan_arr.shape[2]//2,:]/patient_4d_scan_arr.max())*255).astype(np.uint8)
-            frame_z = ((patient_4d_scan_arr[timestep,:,:,patient_4d_scan_arr.shape[3]//2]/patient_4d_scan_arr.max())*255).astype(np.uint8)
-
-            frame = np.vstack([frame_x,  np.zeros((10,256)),frame_y,np.zeros((10,256)),frame_z, np.zeros((50,256))])
-
-            frame = cv2.applyColorMap(frame.astype(np.uint8), cv2.COLORMAP_BONE)
-            out.write(frame)
-
-        out.release()
-
-def create_toy_box_image_and_mask():
-    binary_mask = np.zeros((100,100,100), dtype=bool)
-    binary_mask[40:60, 40:60, 10:90] = True
-    binary_mask[30:50, 30:50, 10:40] = True
-    binary_mask[50:70, 50:70, 40:60] = True
-    binary_mask[70:90, 70:90, 60:90] = True
-    binary_mask[20:81,40:61, 40:61] = True
-
-
-    three_d_image = np.arange(binary_mask.flatten().shape[0]).astype(float)
-    three_d_image = three_d_image.reshape(binary_mask.shape)
-    three_d_image = binary_mask.copy().astype(float)
-
-def read_ct_and_mask(timestep, save_nrrd=False):
-    ct_dir = os.path.join("/","home","shahar","projects","4dct_data","20","20","Anonymized - 859733","Ctacoc","DS_CorCTABi 1.5 B25f 0-95% Matrix 256 - 12")
-
-    img3d, voxel_size = images_to_3dnump(ct_dir, img_num=timestep, plot=False)
-    img3d_scaled = scipy.ndimage.zoom(img3d, voxel_size)
-    voxel_size = np.array([0.78125, 0.78125, 1.5    ])
-
-    mask_path = os.path.join("/","home","shahar","projects","flow","_4DCTCostUnrolling-main","warped_seg_maps2", "smoothening_exp", "seg_20_28to28.npz")
-    mask_path = f"/home/shahar/projects/pcd_to_mesh/exploration/binary_mask_{timestep}.npz"
-    try:
-        mask = np.load(mask_path)["arr_0"]
-        mask_xyz = np.rollaxis(mask, 0, 3)
-        mask_scaled = scipy.ndimage.zoom(mask_xyz, voxel_size, order=0, mode="nearest") 
-    except FileNotFoundError:
-        mask_scaled = np.load(mask_path.replace(".npz", ".npy"))
-    print(img3d_scaled.shape, mask_scaled.shape)
-    
-    if save_nrrd:
-        np.save("ct_scan", three_d_image)
-        np.save("binary_mask", binary_mask)
-
-    return img3d_scaled.copy(), mask_scaled.copy()
-
-def create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, nrrds_dir):
-    x_seq = []
-    y_seq = []
-    z_seq = []
-    for r1, r2, theta1, theta2, h in zip(r1s, r2s, theta1s, theta2s, hs):
-        print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
-        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}"
-        nrrd_arr = nrrd.read(os.path.join(nrrds_dir, f"img_skewed{suffix}.nrrd"))[0]
-        x_seq.append(nrrd_arr[nrrd_arr.shape[0]//2,:,:])
-        y_seq.append(nrrd_arr[:,nrrd_arr.shape[1]//2,:])
-        z_seq.append(nrrd_arr[:,:,nrrd_arr.shape[2]//2])
-    for r1, r2, theta1, theta2, h in zip(r1s[1:-1][::-1], r2s[1:-1][::-1], theta1s[1:-1][::-1], theta2s[1:-1][::-1], hs[1:-1][::-1]):
-        print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
-        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}"
-        nrrd_arr = nrrd.read(os.path.join(nrrds_dir, f"img_skewed{suffix}.nrrd"))[0]
-        x_seq.append(nrrd_arr[nrrd_arr.shape[0]//2,:,:])
-        y_seq.append(nrrd_arr[:,nrrd_arr.shape[1]//2,:])
-        z_seq.append(nrrd_arr[:,:,nrrd_arr.shape[2]//2])
-    return x_seq, y_seq, z_seq
-
-def calc_start(orig_param_start, end, num_frames):
-    gap = (end - orig_param_start)/num_frames
-    return orig_param_start + gap
-
-
-def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end):
-    timestep = 18 if r1s_end<=1 else 28
-
-    num_frames = 5
-
-    r1s_start = 1.0
-    r2s_start = 1.0
-    theta1s_start = 0
-    theta2s_start = 0
-    hs_start = 1.0
-    
-    r1s     = np.linspace( r1s_start,     r1s_end,     num_frames + 1 )
-    r2s     = np.linspace( r2s_start,     r2s_end,     num_frames + 1 )
-    theta1s = np.linspace( theta1s_start, theta1s_end, num_frames + 1 )
-    theta2s = np.linspace( theta2s_start, theta2s_end, num_frames + 1 )
-    hs      = np.linspace( hs_start,      hs_end,      num_frames + 1 )
-
-    major_output_dir = "self_validation_params_exp"
-    os.makedirs(major_output_dir, exist_ok=True)
-    minor_output_dir = f"_thetas_{round(theta1s_end,2)}_{round(theta2s_end,2)}_rs_{round(r1s_end,2)}_{round(r2s_end,2)}_h_{round(hs_end,2)}"
-    output_dir = os.path.join(major_output_dir, minor_output_dir)
-    os.makedirs(output_dir, exist_ok=True)
-
-    SKEW = True
-
-
-    if SKEW:
-        three_d_image, binary_mask = read_ct_and_mask(timestep=timestep)
-        volume_skewer =  VolumeSkewer(warping_borders_pad='zeros', warping_interp_mode='bilinear')
-        for r1, r2, theta1, theta2, h in zip(r1s, r2s, theta1s, theta2s, hs):
-            print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
-            skewed_3d_image = volume_skewer.skew_volume(
-                theta1=theta1, theta2=theta2, 
-                r1=r1, r2=r2, 
-                h=h, 
-                three_d_image=three_d_image, 
-                three_d_binary_mask=binary_mask,
-                output_dir=output_dir
-                )
-        print("skewing completed")
-
-    x_seq, y_seq, z_seq = create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, output_dir)
-
-    VideoUtils.create_video_from_xys_seqs(x_seq*10, y_seq*10, z_seq*10, os.path.join(output_dir,f"vid{minor_output_dir}.avi"))
-
-
-## WINNER!!! create_skewed_sequences(r1s_end=0.5,r2s_end=0.5, theta1s_end=40, theta2s_end=-40, hs_end=0.8 ) 
-
-create_skewed_sequences(r1s_end=0.8, r2s_end=1., theta1s_end=0., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=0.6, r2s_end=1., theta1s_end=0., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=0.8, theta1s_end=0., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=0.6, theta1s_end=0., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=30., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=45., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=60., theta2s_end=-0., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=0., theta2s_end=-30., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=0., theta2s_end=-45., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=0., theta2s_end=-60., hs_end=1.) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=0., theta2s_end=-0., hs_end=0.8) 
-create_skewed_sequences(r1s_end=1., r2s_end=1., theta1s_end=0., theta2s_end=-0., hs_end=0.6) 
-
-
-

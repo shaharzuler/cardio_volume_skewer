@@ -1,0 +1,6 @@
+numpy>=1.25.1
+pynrrd>=1.0.0
+scipy>=1.11.1
+opencv-python>=4.7.0.72
+torch>=2.0.1
+patchify>=0.2.3
