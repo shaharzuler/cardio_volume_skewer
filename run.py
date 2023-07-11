@@ -86,7 +86,7 @@ def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end):
 
     if SKEW:
         three_d_image, binary_mask = read_ct_and_mask(timestep=timestep)
-        volume_skewer =  VolumeSkewer(warping_borders_pad='zeros', warping_interp_mode='bilinear')
+        volume_skewer =  VolumeSkewer(warping_borders_pad='zeros', img_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest')
         for r1, r2, theta1, theta2, h in zip(r1s, r2s, theta1s, theta2s, hs):
             print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
             skewed_3d_image = volume_skewer.skew_volume(
