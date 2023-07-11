@@ -41,9 +41,6 @@ def _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, nrrds_dir)
         z_seq.append(nrrd_arr[:,:,nrrd_arr.shape[2]//2])
     return x_seq, y_seq, z_seq
 
-# def calc_start(orig_param_start, end, num_frames):
-#     gap = (end - orig_param_start)/num_frames
-#     return orig_param_start + gap
 
 def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, output_dir, template_timestep=None):
     if template_timestep is None:
@@ -64,7 +61,7 @@ def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, 
     hs      = np.linspace( hs_start,      hs_end,      num_frames + 1 )
 
     
-    output_subdir = f"_thetas_{round(theta1s_end,2)}_{round(theta2s_end,2)}_rs_{round(r1s_end,2)}_{round(r2s_end,2)}_h_{round(hs_end,2)}"
+    output_subdir = f"thetas_{round(theta1s_end,2)}_{round(theta2s_end,2)}_rs_{round(r1s_end,2)}_{round(r2s_end,2)}_h_{round(hs_end,2)}"
     output_dir = os.path.join(output_dir, output_subdir)
 
 
@@ -84,4 +81,12 @@ def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, 
 
     x_seq, y_seq, z_seq = _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, output_dir)
 
-    create_video_from_xys_seqs(x_seq*10, y_seq*10, z_seq*10, os.path.join(output_dir,f"vid{output_subdir}.avi"))
+    create_video_from_xys_seqs(x_seq*10, y_seq*10, z_seq*10, os.path.join(output_dir,f"vid_{output_subdir}.avi"))
+
+    template_synthetic_img_paths = os.path.join(output_dir, f"img_orig_{output_subdir}.npy")
+    unlabeled_synthetic_img_paths = os.path.join(output_dir, f"img_skewed_{output_subdir}.npy")
+    template_synthetic_mask_paths = os.path.join(output_dir, f"mask_orig_{output_subdir}.npy")
+    unlabeled_synthetic_mask_paths = os.path.join(output_dir, f"mask_skewed_{output_subdir}.npy")
+    synthetic_flow_path = os.path.join(output_dir, f"flow_{output_subdir}.npy")
+
+    return template_synthetic_img_paths, unlabeled_synthetic_img_paths, template_synthetic_mask_paths, unlabeled_synthetic_mask_paths, synthetic_flow_path

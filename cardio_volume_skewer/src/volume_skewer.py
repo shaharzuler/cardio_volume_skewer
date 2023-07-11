@@ -242,7 +242,7 @@ class VolumeSkewer:
 
     def save_nrrds(self)->None:
         suffix = f"_thetas_{round(self.theta1,2)}_{round(self.theta2,2)}_rs_{round(self.r1,2)}_{round(self.r2,2)}_h_{round(self.h,2)}"
-        nrrd.write(os.path.join(self.output_dir, f'img_orig_thetas{suffix}.nrrd'), self.three_d_image)
+        nrrd.write(os.path.join(self.output_dir, f'img_orig{suffix}.nrrd'), self.three_d_image)
         nrrd.write(os.path.join(self.output_dir, f'img_skewed{suffix}.nrrd'),      self.skewed_three_d_image)
         nrrd.write(os.path.join(self.output_dir, f'img_diff{suffix}.nrrd'),        self.skewed_three_d_image - self.three_d_image)
         nrrd.write(os.path.join(self.output_dir, f"flow_magnitude{suffix}.nrrd"),  self.cropped_flow[:,:,:,0]**2 + self.cropped_flow[:,:,:,1]**2 + self.cropped_flow[:,:,:,2]**2)
@@ -251,7 +251,7 @@ class VolumeSkewer:
        
     def save_npys(self)->None:
         suffix = f"_thetas_{round(self.theta1,2)}_{round(self.theta2,2)}_rs_{round(self.r1,2)}_{round(self.r2,2)}_h_{round(self.h,2)}"
-        np.save(os.path.join(self.output_dir, f'img_orig_thetas{suffix}.npy'), self.three_d_image)
+        np.save(os.path.join(self.output_dir, f'img_orig{suffix}.npy'), self.three_d_image)
         np.save(os.path.join(self.output_dir, f'img_skewed{suffix}.npy'),      self.skewed_three_d_image)
         np.save(os.path.join(self.output_dir, f'img_diff{suffix}.npy'),        self.skewed_three_d_image - self.three_d_image)
         np.save(os.path.join(self.output_dir, f"flow_magnitude{suffix}.npy"),  self.cropped_flow[:,:,:,0]**2 + self.cropped_flow[:,:,:,1]**2 + self.cropped_flow[:,:,:,2]**2)
