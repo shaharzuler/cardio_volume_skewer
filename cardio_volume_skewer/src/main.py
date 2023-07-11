@@ -83,10 +83,10 @@ def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, 
 
     create_video_from_xys_seqs(x_seq*10, y_seq*10, z_seq*10, os.path.join(output_dir,f"vid_{output_subdir}.avi"))
 
-    template_synthetic_img_paths = os.path.join(output_dir, f"img_orig_{output_subdir}.npy")
-    unlabeled_synthetic_img_paths = os.path.join(output_dir, f"img_skewed_{output_subdir}.npy")
-    template_synthetic_mask_paths = os.path.join(output_dir, f"mask_orig_{output_subdir}.npy")
-    unlabeled_synthetic_mask_paths = os.path.join(output_dir, f"mask_skewed_{output_subdir}.npy")
+    template_synthetic_img_path = os.path.join(output_dir, f"img_orig_{output_subdir}.npy")
+    unlabeled_synthetic_img_path = os.path.join(output_dir, f"img_skewed_{output_subdir}.npy")
+    template_synthetic_mask_path = os.path.join(output_dir, f"mask_orig_{output_subdir}.npy")
+    unlabeled_synthetic_mask_path = os.path.join(output_dir, f"mask_skewed_{output_subdir}.npy")
     synthetic_flow_path = os.path.join(output_dir, f"flow_{output_subdir}.npy")
 
-    return template_synthetic_img_paths, unlabeled_synthetic_img_paths, template_synthetic_mask_paths, unlabeled_synthetic_mask_paths, synthetic_flow_path
+    return template_synthetic_img_path, unlabeled_synthetic_img_path, template_synthetic_mask_path, unlabeled_synthetic_mask_path, synthetic_flow_path
