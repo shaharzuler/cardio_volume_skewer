@@ -1,10 +1,9 @@
 from typing import List
-import numpy as np
 import os
+
+import numpy as np
 import cv2
 
-  
-  
 
 def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq:List[np.array], filename:str, crop_pad:int=0, gap_bet_images=16) -> None:
     print(f"Saving video {filename}")
@@ -48,7 +47,6 @@ def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq
             out.write(frame)
 
         out.release()
-
 
 def create_video_from_4d_arr(patient_4d_scan_arr, output_dir, filename):
     print(f"Saving video {filename}")
