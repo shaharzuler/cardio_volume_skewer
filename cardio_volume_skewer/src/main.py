@@ -54,18 +54,27 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
             three_d_binary_mask=binary_mask,
             output_dir=output_dir
             )
-    maximal_flow_for_image = volume_skewer.flow_for_image
-    maximal_flow_for_mask = volume_skewer.flow_for_mask
+    # maximal_flow_for_image = volume_skewer.flow_for_image
+    maximal_flow = volume_skewer.flow_for_mask
+
+
+
 
     for n, (ratio, r1, r2, theta1, theta2, h) in enumerate(zip(ratios, r1s, r2s, theta1s, theta2s, hs)):
-        volume_skewer.scaled_flow_for_image      = maximal_flow_for_image * ratio
-        volume_skewer.scaled_flow_for_mask       = maximal_flow_for_mask * ratio
+        # volume_skewer.scaled_flow_for_image      = maximal_flow * ratio
+        volume_skewer.scaled_flow_for_mask = maximal_flow * ratio
         if n  == 0:
             volume_skewer.skewed_three_d_image = volume_skewer.three_d_image
             volume_skewer.skewed_three_d_binary_mask = volume_skewer.three_d_binary_mask
+            volume_skewer.scaled_flow_for_image = volume_skewer.scaled_flow_for_mask
+
         else:
-            volume_skewer.skewed_three_d_image       = volume_skewer.flow_warp(image=volume_skewer.three_d_image,                     flow=volume_skewer.scaled_flow_for_image, warping_borders_pad=volume_skewer.warping_borders_pad, warping_interp_mode=volume_skewer.image_warping_interp_mode )
             volume_skewer.skewed_three_d_binary_mask = volume_skewer.flow_warp(image=volume_skewer.three_d_binary_mask.astype(float), flow=volume_skewer.scaled_flow_for_mask,  warping_borders_pad=volume_skewer.warping_borders_pad, warping_interp_mode=volume_skewer.mask_warping_interp_mode)
+            if volume_skewer.zero_outside_mask: # only moves pixels inside the seg mask #TODO use the warped mask!!
+                volume_skewer.scaled_flow_for_image = volume_skewer.zero_out_outside_mask(volume_skewer.scaled_flow_for_mask, volume_skewer.skewed_three_d_binary_mask)
+            else:
+                volume_skewer.scaled_flow_for_image = volume_skewer.scaled_flow_for_mask
+            volume_skewer.skewed_three_d_image = volume_skewer.flow_warp(image=volume_skewer.three_d_image,   flow=volume_skewer.scaled_flow_for_image, warping_borders_pad=volume_skewer.warping_borders_pad, warping_interp_mode=volume_skewer.image_warping_interp_mode )
         
         suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}"
         if volume_skewer.save_nrrd:
@@ -85,6 +94,6 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
     unlabeled_synthetic_image_path = os.path.join(output_dir, f"image_skewed_{output_subdir}.npy")
     template_synthetic_mask_path = os.path.join(output_dir, f"mask_orig_{output_subdir}.npy")
     unlabeled_synthetic_mask_path = os.path.join(output_dir, f"mask_skewed_{output_subdir}.npy")
-    synthetic_flow_path = os.path.join(output_dir, f"flow_{output_subdir}.npy")
+    synthetic_flow_path = os.path.join(output_dir, f"flow_for_image_{output_subdir}.npy")
 
     return template_synthetic_image_path, unlabeled_synthetic_image_path, template_synthetic_mask_path, unlabeled_synthetic_mask_path, synthetic_flow_path

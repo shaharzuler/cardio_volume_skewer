@@ -52,10 +52,10 @@ class VolumeSkewer:
         self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_vertices_mean)
         self.flow_for_mask = self._interp_to_fill_nans(self.flow_for_mask)
 
-        if self.zero_outside_mask: # only moves pixels inside the seg mask
-            self.flow_for_image = self.flow_for_mask.copy()
-            out_mask = ~self.three_d_binary_mask.astype(bool)
-            self.flow_for_image[out_mask.nonzero()] = 0.
+    def zero_out_outside_mask(self, flow, mask):
+        out_mask = ~mask.astype(bool)
+        flow[out_mask.nonzero()] = 0.
+        return flow
 
     def flow_warp(self, image:np.array, flow:np.array, warping_borders_pad:str, warping_interp_mode:str)->np.array: #TODO move to flow utils package
         flow = np.rollaxis(flow,-1)
@@ -171,7 +171,7 @@ class VolumeSkewer:
         if main_points_data.shape[0] == 0:
             flow_field_axis[nan_indices] = 0.
         else:
-            try:
+            try: # TODO simply write the condition of at least 3 data points..
                 interp = interpolator(list(zip(*main_points_indices.nonzero())), main_points_data) 
                 flow_field_axis[nan_indices] = interp(*nan_indices.nonzero())
             except QhullError as e:
