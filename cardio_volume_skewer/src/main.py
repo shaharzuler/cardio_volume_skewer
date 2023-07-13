@@ -29,9 +29,7 @@ def _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, nrrds_dir)
     return x_seq, y_seq, z_seq
 
 
-def create_skewed_sequences(r1s_end, r2s_end, theta1s_end, theta2s_end, hs_end, output_dir, template_3dimg_path, template_mask_path):
-    num_frames = 5
-
+def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, theta2s_end:float, hs_end:float, output_dir:str, template_3dimg_path:str, template_mask_path:str, num_frames:int):
     r1s_start = 1.0
     r2s_start = 1.0
     theta1s_start = 0
