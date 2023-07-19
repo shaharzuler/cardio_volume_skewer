@@ -4,3 +4,4 @@ scipy>=1.11.1
 opencv-python>=4.7.0.72
 torch>=2.0.1
 patchify>=0.2.3
+three_d_data_manager @ git+https://github.com/shaharzuler/three_d_data_manager.git

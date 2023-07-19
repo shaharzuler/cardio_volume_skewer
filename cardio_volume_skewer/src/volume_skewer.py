@@ -12,6 +12,8 @@ import torch
 from torch import nn
 import patchify
 
+import three_d_data_manager
+
 
 
 class VolumeSkewer:
@@ -122,7 +124,7 @@ class VolumeSkewer:
         return flow_field_cropped
 
     def _compute_main_rotation(self)->np.array:
-        shell = VolumeSkewer._extract_shell_from_mask(self.three_d_binary_mask)
+        shell = three_d_data_manager.extract_segmentation_envelope(self.three_d_binary_mask)
         self.orig_vertices =np.array(shell.nonzero()).T
         self.orig_vertices_mean = self.orig_vertices.mean(axis=0)
         orig_vertices_centered = self.orig_vertices - self.orig_vertices_mean
@@ -170,13 +172,15 @@ class VolumeSkewer:
         main_points_data = flow_field_axis[main_points_indices]
         if main_points_data.shape[0] == 0:
             flow_field_axis[nan_indices] = 0.
+        elif main_points_data.shape[0] < 3:
+            flow_field_axis[nan_indices] = main_points_data.mean()
         else:
-            try: # TODO simply write the condition of at least 3 data points..
+            try: 
                 interp = interpolator(list(zip(*main_points_indices.nonzero())), main_points_data) 
                 flow_field_axis[nan_indices] = interp(*nan_indices.nonzero())
             except QhullError as e:
                 flow_field_axis[nan_indices] = main_points_data.mean()
-                print(f"cant interpolate to fill nans: \n{e}")
+                print(f"Can't interpolate to fill nans: \n{e}")
 
         return flow_field_axis
 
@@ -241,9 +245,3 @@ class VolumeSkewer:
         v_grid_norm[:, 2, :, :, :] = (2.0 * v_grid[:, 2, :, :, :] / (H - 1)) - 1.0 
         
         return v_grid_norm.permute(0, 2, 3, 4, 1)
-
-    @staticmethod
-    def _extract_shell_from_mask(three_d_binary_mask:np.array) -> np.array:
-        erosed_mask = ndimage.binary_erosion(three_d_binary_mask)
-        three_d_shell = np.logical_xor(three_d_binary_mask, erosed_mask)
-        return three_d_shell
