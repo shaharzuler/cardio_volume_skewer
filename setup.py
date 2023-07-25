@@ -16,6 +16,6 @@ setup(
     url='https://github.com/shaharzuler/cardio_volume_skewer',
     classifiers=[
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.8',
     ],
 )
