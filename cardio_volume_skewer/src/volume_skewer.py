@@ -17,10 +17,11 @@ import three_d_data_manager
 
 
 class VolumeSkewer:
-    def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest'):
+    def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, blur_around_mask_radious:int=0, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest'):
         self.save_nrrd = save_nrrd
         self.save_npy = save_npy
         self.zero_outside_mask = zero_outside_mask
+        self.blur_around_mask_radious = blur_around_mask_radious
         self.warping_borders_pad=warping_borders_pad
         self.image_warping_interp_mode = image_warping_interp_mode
         self.mask_warping_interp_mode = mask_warping_interp_mode
@@ -54,10 +55,18 @@ class VolumeSkewer:
         self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_vertices_mean)
         self.flow_for_mask = self._interp_to_fill_nans(self.flow_for_mask)
 
-    def zero_out_outside_mask(self, flow, mask):
-        out_mask = ~mask.astype(bool)
-        flow[out_mask.nonzero()] = 0.
-        return flow
+    def handle_outside_mask(self):
+        mask = self.skewed_three_d_binary_mask.astype(bool)
+        
+        if self.blur_around_mask_radious > 0:
+            mask_dilated = ndimage.binary_dilation(mask, iterations=self.blur_around_mask_radious)
+            mask_surrounding = mask_dilated^mask
+            out_mask = ~mask_dilated
+        else:
+            out_mask = ~mask
+        self.scaled_flow_for_mask[out_mask.nonzero()] = 0.
+        self.scaled_flow_for_mask[mask_surrounding.nonzero()] *= 0.5 #TODO maybe put nans and then interp them to make a smoother transition.
+        return self.scaled_flow_for_mask
 
     def flow_warp(self, image:np.array, flow:np.array, warping_borders_pad:str, warping_interp_mode:str)->np.array: #TODO move to flow utils package
         flow = np.rollaxis(flow,-1)
