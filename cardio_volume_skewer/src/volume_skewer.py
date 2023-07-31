@@ -59,13 +59,19 @@ class VolumeSkewer:
         mask = self.skewed_three_d_binary_mask.astype(bool)
         
         if self.blur_around_mask_radious > 0:
-            mask_dilated = ndimage.binary_dilation(mask, iterations=self.blur_around_mask_radious)
-            mask_surrounding = mask_dilated^mask
-            out_mask = ~mask_dilated
+            dilated_mask_layers = []
+            largets_mask = mask.copy()
+            for r in range(self.blur_around_mask_radious):
+                dilated_mask = ndimage.binary_dilation(largets_mask)
+                dilated_mask_layers.append(dilated_mask^largets_mask)
+                largets_mask = dilated_mask.copy()
+            out_mask = ~largets_mask
+            for n, layer in enumerate(dilated_mask_layers):
+                self.scaled_flow_for_mask[layer.nonzero()] *= 1. - (float(n+1)/self.blur_around_mask_radious)
         else:
             out_mask = ~mask
         self.scaled_flow_for_mask[out_mask.nonzero()] = 0.
-        self.scaled_flow_for_mask[mask_surrounding.nonzero()] *= 0.5 #TODO maybe put nans and then interp them to make a smoother transition.
+
         return self.scaled_flow_for_mask
 
     def flow_warp(self, image:np.array, flow:np.array, warping_borders_pad:str, warping_interp_mode:str)->np.array: #TODO move to flow utils package
@@ -98,9 +104,8 @@ class VolumeSkewer:
         np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),      self.three_d_binary_mask.astype(bool))
         np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),    self.skewed_three_d_binary_mask.astype(bool))
 
-    def _interp_to_fill_nans(self, flow) -> None:
-        patchify_step = 8
-        patch_size_x, patch_size_y = 10, 10
+    def _interp_to_fill_nans(self, flow:np.ndarray, patchify_step:int=8, patch_size_x:int=10, patch_size_y:int=10) -> None:
+        
         unpatchify_output_x = flow.shape[0] - (flow.shape[0] - patch_size_x) % patchify_step
         unpatchify_output_y = flow.shape[1] - (flow.shape[1] - patch_size_y) % patchify_step
 
