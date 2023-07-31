@@ -53,8 +53,6 @@ def create_video_from_4d_arr(patient_4d_scan_arr, output_dir, filename):
     frameSize = patient_4d_scan_arr.shape[2]+70+2*patient_4d_scan_arr.shape[1], patient_4d_scan_arr.shape[3]
     out = cv2.VideoWriter(os.path.join(output_dir, filename), cv2.VideoWriter_fourcc(*'XVID'), 15, (frameSize[1],frameSize[0]))
     for timestep in range(patient_4d_scan_arr.shape[0]):
-        # frame = ((patient_4d_scan_arr[timestep,patient_4d_scan_arr.shape[1]//2,:,:]/patient_4d_scan_arr.max())*255).astype(np.uint8)
-
         frame_x = ((patient_4d_scan_arr[timestep,patient_4d_scan_arr.shape[1]//2,:,:]/patient_4d_scan_arr.max())*255).astype(np.uint8)
         frame_y = ((patient_4d_scan_arr[timestep,:,patient_4d_scan_arr.shape[2]//2,:]/patient_4d_scan_arr.max())*255).astype(np.uint8)
         frame_z = ((patient_4d_scan_arr[timestep,:,:,patient_4d_scan_arr.shape[3]//2]/patient_4d_scan_arr.max())*255).astype(np.uint8)
