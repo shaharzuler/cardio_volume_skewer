@@ -6,12 +6,13 @@ from cardio_volume_skewer import create_skewed_sequences
 
 paths = create_skewed_sequences(
     r1s_end=0.95, r2s_end=0.95, theta1s_end=90.0, theta2s_end=0.0, hs_end=1.0,
-    output_dir="/home/shahar/cardio_corr/my_packages/cardio_volume_skewer_project/cardio_volume_skewer/outputs/self_validation_params_exp_blur", 
+    output_dir="/home/shahar/cardio_corr/my_packages/cardio_volume_skewer_project/cardio_volume_skewer/outputs/self_validation_params_exp_rand_thetas", 
     template_3dimage_path="/home/shahar/cardio_corr/outputs/synthetic_dataset20/18/orig/voxels/xyz_arr_raw.npy",
     template_mask_path="/home/shahar/cardio_corr/outputs/synthetic_dataset20/18/orig/voxels/xyz_voxels_mask_smooth.npy",
     num_frames=2,
     zero_outside_mask=True,
-    blur_around_mask_radious=5)
+    blur_around_mask_radious=10,
+    theta_distribution_method="random_3_0.4")
 
 print(paths)
 

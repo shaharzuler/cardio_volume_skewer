@@ -17,7 +17,7 @@ import three_d_data_manager
 
 
 class VolumeSkewer:
-    def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, blur_around_mask_radious:int=0, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest'):
+    def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, blur_around_mask_radious:int=0, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest', theta_changing_method='linear'):
         self.save_nrrd = save_nrrd
         self.save_npy = save_npy
         self.zero_outside_mask = zero_outside_mask
@@ -25,6 +25,7 @@ class VolumeSkewer:
         self.warping_borders_pad=warping_borders_pad
         self.image_warping_interp_mode = image_warping_interp_mode
         self.mask_warping_interp_mode = mask_warping_interp_mode
+        self.theta_changing_method=theta_changing_method
         
     def skew_volume(self,  theta1:float, theta2:float, r1:float, r2:float, h:float, three_d_image:np.array, three_d_binary_mask:np.array, output_dir:str) -> None: 
         self.three_d_image = three_d_image
@@ -48,12 +49,34 @@ class VolumeSkewer:
         
         flow_field = self._init_flow_field()
         rs = np.linspace(r1, r2, self.z_flow)
-        thetas = np.linspace(theta1, theta2, self.z_flow)
+        thetas = self._get_thetas(theta1, theta2)
         flow_field = self._create_flow_for_r_and_scale(flow_field, rs, thetas)
         self.flow_field = self._stretch_flow_vertically(flow_field)
         self.flow_field_rotated = self._rotate_flow(flow_field, np.linalg.inv(self.main_rotation_matrix.T))
         self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_vertices_mean)
         self.flow_for_mask = self._interp_to_fill_nans(self.flow_for_mask)
+
+    def _get_thetas(self, theta1:float, theta2:float) -> np.ndarray:
+        epsilon = 0.1
+        if self.theta_changing_method == "linear":
+            thetas = np.linspace(theta1, theta2, self.z_flow)
+        elif self.theta_changing_method == "geometric":
+            max_ = abs(theta2-theta1)
+            thetas = np.geomspace(epsilon, max_, self.z_flow) 
+            if theta1 > theta2:
+                thetas = thetas[::-1]
+            thetas = thetas + min(abs(theta1), abs(theta2)) - epsilon
+        elif "random" in self.theta_changing_method:
+            noise_mag = float(self.theta_changing_method.split("_")[-2])
+            noise_bias = float(self.theta_changing_method.split("_")[-1])
+            progress = (np.random.rand(self.z_flow) - noise_bias) * noise_mag
+            thetas = np.cumsum(progress)
+        from matplotlib import pyplot as plt
+        plt.plot(thetas)
+        plt.title("thetas")
+        plt.savefig(os.path.join(self.output_dir, "thetas.jpg"))
+        return thetas
+
 
     def handle_outside_mask(self):
         mask = self.skewed_three_d_binary_mask.astype(bool)

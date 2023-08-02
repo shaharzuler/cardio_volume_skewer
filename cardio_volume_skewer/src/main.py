@@ -26,7 +26,8 @@ def _create_frame_sequences_for_video(r1s:np.array, r2s:np.array, theta1s:np.arr
     return x_seq, y_seq, z_seq
 
 def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, theta2s_end:float, hs_end:float, \
-    output_dir:str, template_3dimage_path:str, template_mask_path:str, num_frames:int, zero_outside_mask:bool, blur_around_mask_radious:int):
+    output_dir:str, template_3dimage_path:str, template_mask_path:str, num_frames:int, zero_outside_mask:bool, \
+        blur_around_mask_radious:int, theta_distribution_method:str):
 
     r1s_start = 1.0
     r2s_start = 1.0
@@ -42,12 +43,12 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
     hs      = np.linspace( hs_start,      hs_end,      num_frames)
     ratios  = np.linspace( ratio_start,   1.,          num_frames)
 
-    output_subdir = f"thetas_{round(theta1s_end,2)}_{round(theta2s_end,2)}_rs_{round(r1s_end,2)}_{round(r2s_end,2)}_h_{round(hs_end,2)}"
+    output_subdir = f"thetas_{round(theta1s_end,2)}_{round(theta2s_end,2)}_rs_{round(r1s_end,2)}_{round(r2s_end,2)}_h_{round(hs_end,2)}_{theta_distribution_method}_mask_{zero_outside_mask}_blur_radious_{blur_around_mask_radious}"
     output_dir = os.path.join(output_dir, output_subdir)
 
     three_d_image = np.load(template_3dimage_path)
     binary_mask = np.load(template_mask_path)
-    volume_skewer =  VolumeSkewer(zero_outside_mask=zero_outside_mask, blur_around_mask_radious=blur_around_mask_radious, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest')
+    volume_skewer =  VolumeSkewer(zero_outside_mask=zero_outside_mask, blur_around_mask_radious=blur_around_mask_radious, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest', theta_changing_method=theta_distribution_method)
     volume_skewer.skew_volume(
             theta1=theta1s_end, theta2=theta2s_end, 
             r1=r1s_end, r2=r2s_end, 
