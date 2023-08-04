@@ -74,11 +74,12 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
                 volume_skewer.scaled_flow_for_image = volume_skewer.scaled_flow_for_mask
             volume_skewer.skewed_three_d_image = volume_skewer.flow_warp(image=volume_skewer.three_d_image, flow=volume_skewer.scaled_flow_for_image, warping_borders_pad=volume_skewer.warping_borders_pad, warping_interp_mode=volume_skewer.image_warping_interp_mode )
         
-        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}"
+        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}_{theta_distribution_method}_mask_{zero_outside_mask}_blur_radious_{blur_around_mask_radious}"
+
         if volume_skewer.save_nrrd:
-            volume_skewer.save_nrrds(suffix = suffix)
+            volume_skewer.save_nrrds(suffix=suffix)
         if volume_skewer.save_npy:
-            volume_skewer.save_npys(suffix = suffix)
+            volume_skewer.save_npys(suffix=suffix)
 
     print("skewing completed")
 
