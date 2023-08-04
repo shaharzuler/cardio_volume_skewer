@@ -5,20 +5,20 @@ import numpy as np
 from cardio_volume_skewer import VolumeSkewer, create_video_from_xys_seqs
 
 
-def _create_frame_sequences_for_video(r1s:np.array, r2s:np.array, theta1s:np.array, theta2s:np.array, hs:np.array, npys_dir:str, image_or_mask:str):
+def _create_frame_sequences_for_video(r1s:np.array, r2s:np.array, theta1s:np.array, theta2s:np.array, hs:np.array, npys_dir:str, image_or_mask:str, theta_distribution_method:str, zero_outside_mask:str, blur_around_mask_radious:str):
     x_seq = []
     y_seq = []
     z_seq = []
     for r1, r2, theta1, theta2, h in zip(r1s, r2s, theta1s, theta2s, hs):
         print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
-        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}"
+        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}_{theta_distribution_method}_mask_{zero_outside_mask}_blur_radious_{blur_around_mask_radious}"
         arr = np.load(os.path.join(npys_dir, f"{image_or_mask}_skewed{suffix}.npy"))
         x_seq.append(arr[arr.shape[0]//2,:,:])
         y_seq.append(arr[:,arr.shape[1]//2,:])
         z_seq.append(arr[:,:,arr.shape[2]//2])
     for r1, r2, theta1, theta2, h in zip(r1s[1:-1][::-1], r2s[1:-1][::-1], theta1s[1:-1][::-1], theta2s[1:-1][::-1], hs[1:-1][::-1]):
         print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
-        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}"
+        suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}_{theta_distribution_method}_mask_{zero_outside_mask}_blur_radious_{blur_around_mask_radious}"
         arr = np.load(os.path.join(npys_dir, f"{image_or_mask}_skewed{suffix}.npy"))
         x_seq.append(arr[arr.shape[0]//2,:,:])
         y_seq.append(arr[:,arr.shape[1]//2,:])
@@ -83,10 +83,10 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
 
     print("skewing completed")
 
-    x_seq, y_seq, z_seq = _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, output_dir, "image")
+    x_seq, y_seq, z_seq = _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, output_dir, "image", theta_distribution_method, zero_outside_mask, blur_around_mask_radious)
     create_video_from_xys_seqs(x_seq*10, y_seq*10, z_seq*10, os.path.join(output_dir,f"vid_{output_subdir}.avi"))
 
-    x_seq_mask, y_seq_mask, z_seq_mask = _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, output_dir, "mask")
+    x_seq_mask, y_seq_mask, z_seq_mask = _create_frame_sequences_for_video(r1s, r2s, theta1s, theta2s, hs, output_dir, "mask", theta_distribution_method, zero_outside_mask, blur_around_mask_radious)
     create_video_from_xys_seqs(x_seq_mask*10, y_seq_mask*10, z_seq_mask*10, os.path.join(output_dir,f"vid_mask_{output_subdir}.avi"))
 
     template_synthetic_image_path = os.path.join(output_dir, f"image_orig_{output_subdir}.npy")
