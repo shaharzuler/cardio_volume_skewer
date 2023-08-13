@@ -10,13 +10,14 @@ def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq
     frameSize = z_seq[0].shape[0] + gap_bet_images + y_seq[0].shape[0], z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1]
     out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 10, (frameSize[1],frameSize[0]))
     max_val = max(np.array(x_seq).max(), np.array(y_seq).max(), np.array(z_seq).max())
+    min_val = min(np.array(x_seq).min(), np.array(y_seq).min(), np.array(z_seq).min())
     for frame_x, frame_y, frame_z in zip(x_seq, y_seq, z_seq):
 
         frame = np.zeros(frameSize)
 
-        frame_x_norm = ( (frame_x / max_val) * 255).astype(np.uint8)
-        frame_y_norm = ( (frame_y / max_val) * 255).astype(np.uint8)
-        frame_z_norm = ( (frame_z / max_val) * 255).astype(np.uint8)
+        frame_x_norm = ( ( (frame_x - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)
+        frame_y_norm = ( ( (frame_y - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)
+        frame_z_norm = ( ( (frame_z - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)
 
         frame[                                   : frame_z.shape[0]                                    ,                                   : frame_z.shape[1]                                     ] = frame_z_norm
         frame[                                   : frame_z.shape[0]                                    , frame_z.shape[1] + gap_bet_images : frame_z.shape[1] + gap_bet_images + frame_x.shape[1] ] = frame_x_norm
@@ -31,13 +32,14 @@ def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq
         frameSize = z_seq[0].shape[0] + gap_bet_images + y_seq[0].shape[0] - 4 * crop_pad, z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1] - 4 * crop_pad
         out = cv2.VideoWriter("vid_crop.avi", cv2.VideoWriter_fourcc(*'XVID'), 10, (frameSize[1],frameSize[0]))
         max_val = max(np.array(x_seq).max(), np.array(y_seq).max(), np.array(z_seq).max())
+        min_val = min(np.array(x_seq).min(), np.array(y_seq).min(), np.array(z_seq).min())
         for frame_x, frame_y, frame_z in zip(x_seq, y_seq, z_seq):
 
             frame = np.zeros(frameSize)
 
-            frame_x_norm = ( (frame_x / max_val) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
-            frame_y_norm = ( (frame_y / max_val) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
-            frame_z_norm = ( (frame_z / max_val) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
+            frame_x_norm = ( ( (frame_x - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
+            frame_y_norm = ( ( (frame_x - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
+            frame_z_norm = ( ( (frame_x - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
 
             frame[                                        : frame_z_norm.shape[0]                                         ,                                        : frame_z_norm.shape[1]                                          ] = frame_z_norm
             frame[                                        : frame_z_norm.shape[0]                                         , frame_z_norm.shape[1] + gap_bet_images : frame_z_norm.shape[1] + gap_bet_images + frame_x_norm.shape[1] ] = frame_x_norm
