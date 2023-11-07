@@ -12,14 +12,14 @@ def _create_frame_sequences_for_video(r1s:np.array, r2s:np.array, theta1s:np.arr
     for r1, r2, theta1, theta2, h in zip(r1s, r2s, theta1s, theta2s, hs):
         print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
         suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}_{theta_distribution_method}_mask_{zero_outside_mask}_blur_radious_{blur_around_mask_radious}"
-        arr = np.load(os.path.join(npys_dir, f"{image_or_mask}_skewed{suffix}.npy"))
+        arr = np.load(os.path.join(npys_dir, f"{image_or_mask}_skewed{suffix}.npy")).astype(float)
         x_seq.append(arr[arr.shape[0]//2,:,:])
         y_seq.append(arr[:,arr.shape[1]//2,:])
         z_seq.append(arr[:,:,arr.shape[2]//2])
     for r1, r2, theta1, theta2, h in zip(r1s[1:-1][::-1], r2s[1:-1][::-1], theta1s[1:-1][::-1], theta2s[1:-1][::-1], hs[1:-1][::-1]):
         print( round(theta1, 2), round(theta2, 2), round(r1, 2), round(r2, 2), round(h, 2) )
         suffix = f"_thetas_{round(theta1,2)}_{round(theta2,2)}_rs_{round(r1,2)}_{round(r2,2)}_h_{round(h,2)}_{theta_distribution_method}_mask_{zero_outside_mask}_blur_radious_{blur_around_mask_radious}"
-        arr = np.load(os.path.join(npys_dir, f"{image_or_mask}_skewed{suffix}.npy"))
+        arr = np.load(os.path.join(npys_dir, f"{image_or_mask}_skewed{suffix}.npy")).astype(float)
         x_seq.append(arr[arr.shape[0]//2,:,:])
         y_seq.append(arr[:,arr.shape[1]//2,:])
         z_seq.append(arr[:,:,arr.shape[2]//2])
@@ -48,7 +48,8 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
 
     three_d_image = np.load(template_3dimage_path)
     binary_mask = np.load(template_mask_path)
-    volume_skewer =  VolumeSkewer(zero_outside_mask=zero_outside_mask, blur_around_mask_radious=blur_around_mask_radious, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest', theta_changing_method=theta_distribution_method)
+    volume_skewer = VolumeSkewer(save_nrrd=False, zero_outside_mask=zero_outside_mask, blur_around_mask_radious=blur_around_mask_radious, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest', theta_changing_method=theta_distribution_method)
+
     volume_skewer.skew_volume(
             theta1=theta1s_end, theta2=theta2s_end, 
             r1=r1s_end, r2=r2s_end, 

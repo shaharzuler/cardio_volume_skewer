@@ -15,7 +15,6 @@ import patchify
 import three_d_data_manager
 
 
-
 class VolumeSkewer:
     def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, blur_around_mask_radious:int=0, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest', theta_changing_method='linear'):
         self.save_nrrd = save_nrrd
@@ -41,19 +40,21 @@ class VolumeSkewer:
         self.center = (np.array([three_d_image.shape])-1) / 2
         self.main_axis = np.array([0, 0, 1])
         self.main_rotation_matrix = self._compute_main_rotation()
-
+        
         self.x_flow = 2 * self.x
         self.y_flow = 2 * self.y
         self.z_flow = 2 * self.z
         self.center_flow = 2 * self.center
+        
+        self.total_torsion = self._compute_total_torsion()
         
         flow_field = self._init_flow_field()
         rs = np.linspace(r1, r2, self.z_flow)
         thetas = self._get_thetas(theta1, theta2)
         flow_field = self._create_flow_for_r_and_scale(flow_field, rs, thetas)
         self.flow_field = self._stretch_flow_vertically(flow_field)
-        self.flow_field_rotated = self._rotate_flow(flow_field, np.linalg.inv(self.main_rotation_matrix.T))
-        self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_vertices_mean)
+        self.flow_field_rotated = self._rotate_flow(flow_field, np.linalg.inv(self.main_rotation_matrix))
+        self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_shell_vertices_mean)
         self.flow_for_mask = self._interp_to_fill_nans(self.flow_for_mask)
 
     def _get_thetas(self, theta1:float, theta2:float) -> np.ndarray:
@@ -76,7 +77,6 @@ class VolumeSkewer:
         plt.title("thetas")
         plt.savefig(os.path.join(self.output_dir, "thetas.jpg"))
         return thetas
-
 
     def handle_outside_mask(self):
         mask = self.skewed_three_d_binary_mask.astype(bool)
@@ -114,17 +114,17 @@ class VolumeSkewer:
         return image_warped[0,0,:,:,:].cpu().numpy()
 
     def save_nrrds(self, suffix:str)->None:
-        nrrd.write(os.path.join(self.output_dir, f'image_orig{suffix}.nrrd'),   self.three_d_image)
+        # nrrd.write(os.path.join(self.output_dir, f'image_orig{suffix}.nrrd'),   self.three_d_image)
         nrrd.write(os.path.join(self.output_dir, f'image_skewed{suffix}.nrrd'), self.skewed_three_d_image)
-        nrrd.write(os.path.join(self.output_dir, f'mask_orig{suffix}.nrrd'),    self.three_d_binary_mask.astype(float))
+        # nrrd.write(os.path.join(self.output_dir, f'mask_orig{suffix}.nrrd'),    self.three_d_binary_mask.astype(float))
         nrrd.write(os.path.join(self.output_dir, f'mask_skewed{suffix}.nrrd'),  self.skewed_three_d_binary_mask.astype(float))
        
     def save_npys(self, suffix:str)->None:
-        np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),     self.three_d_image)
+        # np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),     self.three_d_image)
         np.save(os.path.join(self.output_dir, f'image_skewed{suffix}.npy'),   self.skewed_three_d_image)
-        np.save(os.path.join(self.output_dir, f"flow_for_mask{suffix}.npy"),  self.scaled_flow_for_mask)
-        np.save(os.path.join(self.output_dir, f"flow_for_image{suffix}.npy"), self.scaled_flow_for_image)
-        np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),      self.three_d_binary_mask.astype(bool))
+        # np.save(os.path.join(self.output_dir, f"flow_for_mask{suffix}.npy"),  self.scaled_flow_for_mask)
+        # np.save(os.path.join(self.output_dir, f"flow_for_image{suffix}.npy"), self.scaled_flow_for_image)
+        # np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),      self.three_d_binary_mask.astype(bool))
         np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),    self.skewed_three_d_binary_mask.astype(bool))
 
     def _interp_to_fill_nans(self, flow:np.ndarray, patchify_step:int=8, patch_size_x:int=10, patch_size_y:int=10) -> None:
@@ -133,7 +133,10 @@ class VolumeSkewer:
         unpatchify_output_y = flow.shape[1] - (flow.shape[1] - patch_size_y) % patchify_step
 
         for axis in range(3):
+            print(f"axis {axis} out of 2")
             for z_plane_i in range(flow.shape[2]):
+                if z_plane_i%10==0:
+                    print(f'z plane {z_plane_i} out of {flow.shape[2]}')
                 z_plane = flow[:,:,z_plane_i,axis]
                 patches = patchify.patchify(z_plane, (patch_size_x, patch_size_y), step=patchify_step)    
                 flow = self._interp_in_patches(flow, patches, axis, z_plane_i, unpatchify_output_x, unpatchify_output_y)
@@ -162,13 +165,27 @@ class VolumeSkewer:
 
     def _compute_main_rotation(self)->np.array:
         shell = three_d_data_manager.extract_segmentation_envelope(self.three_d_binary_mask)
-        self.orig_vertices =np.array(shell.nonzero()).T
-        self.orig_vertices_mean = self.orig_vertices.mean(axis=0)
-        orig_vertices_centered = self.orig_vertices - self.orig_vertices_mean
+        self.orig_shell_vertices =np.array(shell.nonzero()).T
+
+        self.orig_shell_vertices_mean = self.orig_shell_vertices.mean(axis=0)
+        self.orig_shell_vertices_centered = self.orig_shell_vertices - self.orig_shell_vertices_mean
         
-        U, S, Vt = np.linalg.svd(orig_vertices_centered)
-        x_to_z = np.array([[0,0,1],[0,1,0],[-1,0,0]])
-        return Vt @ x_to_z
+        U, S, Vt = np.linalg.svd(self.orig_shell_vertices_centered)
+
+        x_to_z = np.array([[0,0,-1],[0,-1,0],[1,0,0]])
+        return (x_to_z @ Vt).T
+
+    def _compute_mask_pixels_range_over_principal_axis(self):
+        mask_projected_coords_over_principal_axis = np.dot(self.orig_shell_vertices_centered, self.main_rotation_matrix)[:,-1]
+        return round(mask_projected_coords_over_principal_axis.max() - mask_projected_coords_over_principal_axis.min())
+        
+    def _compute_total_torsion(self):
+        self.mask_pixels_range_over_principal_axis = self._compute_mask_pixels_range_over_principal_axis()
+        total_torsion = (self.theta2 - self.theta1) * (float(self.mask_pixels_range_over_principal_axis) / self.z_flow)
+        print(f"Total torsion: {total_torsion}")
+        with open(os.path.join(self.output_dir, 'total_torsion.txt'), 'w') as f:
+            f.write(f"Total torsion: {total_torsion}")
+        return total_torsion
 
     def _init_flow_field(self)->np.array:
         flow_field = np.empty([self.x_flow, self.y_flow, self.z_flow, 3])  
@@ -185,7 +202,7 @@ class VolumeSkewer:
                 [self.x_flow-1, self.y_flow-1, xy_plane_i] 
                 )
             )
-            edges_coords_centered = edges_coords - self.center_flow # z axis doesnt need to be reduced but it doesnt matter since the rotation is around z axis
+            edges_coords_centered = edges_coords - self.center_flow # z axis doesn't need to be reduced but it doesnt matter since the rotation is around z axis
             r = R.from_rotvec((thetas[xy_plane_i] * (math.pi / 180)) * self.main_axis)
             rot_matrix = r.as_matrix()
             scale_matrix = np.array(
@@ -245,7 +262,7 @@ class VolumeSkewer:
         return flow_field_rotated
         
     def _rotate_coords(self, coords:np.array, rotation_matrix:np.array)->np.array:
-        rot_coords = np.dot(coords.reshape((-1, 3)), rotation_matrix.T)
+        rot_coords = np.dot(coords.reshape((-1, 3)), rotation_matrix)
         rot_coords = rot_coords.reshape(self.x_flow, self.y_flow, self.z_flow, 3)
         rot_coords[:, :, :, 0] += self.center_flow[0, 0]
         rot_coords[:, :, :, 1] += self.center_flow[0, 1]
