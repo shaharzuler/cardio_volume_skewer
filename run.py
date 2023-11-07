@@ -1,4 +1,3 @@
-# TODO fix opposite flow direction
 # TODO fix 1st frame glitch in video
 
 from cardio_volume_skewer import create_skewed_sequences
