@@ -120,11 +120,11 @@ class VolumeSkewer:
         nrrd.write(os.path.join(self.output_dir, f'mask_skewed{suffix}.nrrd'),  self.skewed_three_d_binary_mask.astype(float))
        
     def save_npys(self, suffix:str)->None:
-        # np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),     self.three_d_image)
+        np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),     self.three_d_image)
         np.save(os.path.join(self.output_dir, f'image_skewed{suffix}.npy'),   self.skewed_three_d_image)
         # np.save(os.path.join(self.output_dir, f"flow_for_mask{suffix}.npy"),  self.scaled_flow_for_mask)
         # np.save(os.path.join(self.output_dir, f"flow_for_image{suffix}.npy"), self.scaled_flow_for_image)
-        # np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),      self.three_d_binary_mask.astype(bool))
+        np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),      self.three_d_binary_mask.astype(bool))
         np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),    self.skewed_three_d_binary_mask.astype(bool))
 
     def _interp_to_fill_nans(self, flow:np.ndarray, patchify_step:int=8, patch_size_x:int=10, patch_size_y:int=10) -> None:
