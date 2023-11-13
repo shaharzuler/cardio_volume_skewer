@@ -214,7 +214,9 @@ class VolumeSkewer:
             )
             transform_matrix = scale_matrix @ rot_matrix 
             edges_coords_moved = (edges_coords_centered @ transform_matrix) + self.center_flow
-            flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] = edges_coords_moved - edges_coords
+            # flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] = edges_coords_moved - edges_coords # OLD
+            flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] =  edges_coords - edges_coords_moved
+
             flow_field[:, :, xy_plane_i, 0] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 0].copy(), LinearNDInterpolator)
             flow_field[:, :, xy_plane_i, 1] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 1].copy(), LinearNDInterpolator)
             flow_field[:, :, xy_plane_i, 2] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 2].copy(), LinearNDInterpolator)
