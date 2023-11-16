@@ -214,8 +214,7 @@ class VolumeSkewer:
             )
             transform_matrix = scale_matrix @ rot_matrix 
             edges_coords_moved = (edges_coords_centered @ transform_matrix) + self.center_flow
-            flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] = edges_coords_moved - edges_coords # OLD
-            # flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] =  edges_coords - edges_coords_moved
+            flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] = edges_coords_moved - edges_coords
 
             flow_field[:, :, xy_plane_i, 0] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 0].copy(), LinearNDInterpolator)
             flow_field[:, :, xy_plane_i, 1] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 1].copy(), LinearNDInterpolator)
@@ -279,7 +278,7 @@ class VolumeSkewer:
     def _rotate_flow_vals(self, valid_coords:np.array, valid_flow_vals:np.array, rotation_matrix:np.array)->np.array:
         flow_field_rotated = np.empty([self.x_flow, self.y_flow, self.z_flow, 3])  
         flow_field_rotated[:] = np.nan
-        flow_field_rotated[valid_coords[:, 0], valid_coords[:, 1], valid_coords[:, 2]] = (np.dot(valid_flow_vals, rotation_matrix))#.T))
+        flow_field_rotated[valid_coords[:, 0], valid_coords[:, 1], valid_coords[:, 2]] = (np.dot(valid_flow_vals, rotation_matrix))
         return flow_field_rotated
 
     def _mesh_grid(self, B:int, H:int, W:int, D:int)->np.array: #TODO move to flow utils package
