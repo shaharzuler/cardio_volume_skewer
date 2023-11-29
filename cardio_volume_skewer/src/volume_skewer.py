@@ -26,9 +26,13 @@ class VolumeSkewer:
         self.mask_warping_interp_mode = mask_warping_interp_mode
         self.theta_changing_method=theta_changing_method
         
-    def skew_volume(self,  theta1:float, theta2:float, r1:float, r2:float, h:float, three_d_image:np.array, three_d_binary_mask:np.array, output_dir:str) -> None: 
+    def skew_volume(
+        self,  theta1:float, theta2:float, r1:float, r2:float, h:float, \
+            three_d_image:np.array, three_d_binary_mask:np.array, extra_three_d_binary_mask:np.array, output_dir:str) -> None: 
+
         self.three_d_image = three_d_image
         self.three_d_binary_mask = three_d_binary_mask
+        self.extra_three_d_binary_mask = extra_three_d_binary_mask
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         self.theta1 = theta1
@@ -114,18 +118,21 @@ class VolumeSkewer:
         return image_warped[0,0,:,:,:].cpu().numpy()
 
     def save_nrrds(self, suffix:str)->None:
-        # nrrd.write(os.path.join(self.output_dir, f'image_orig{suffix}.nrrd'),   self.three_d_image)
-        nrrd.write(os.path.join(self.output_dir, f'image_skewed{suffix}.nrrd'), self.skewed_three_d_image)
-        # nrrd.write(os.path.join(self.output_dir, f'mask_orig{suffix}.nrrd'),    self.three_d_binary_mask.astype(float))
-        nrrd.write(os.path.join(self.output_dir, f'mask_skewed{suffix}.nrrd'),  self.skewed_three_d_binary_mask.astype(float))
+        # nrrd.write(os.path.join(self.output_dir, f'image_orig{suffix}.nrrd'),        self.three_d_image)
+        nrrd.write(os.path.join(self.output_dir, f'image_skewed{suffix}.nrrd'),      self.skewed_three_d_image)
+        # nrrd.write(os.path.join(self.output_dir, f'mask_orig{suffix}.nrrd'),         self.three_d_binary_mask.astype(float))
+        nrrd.write(os.path.join(self.output_dir, f'mask_skewed{suffix}.nrrd'),       self.skewed_three_d_binary_mask.astype(float))
+        nrrd.write(os.path.join(self.output_dir, f'extra_mask_skewed{suffix}.nrrd'), self.skewed_extra_three_d_binary_mask.astype(float))
+
        
     def save_npys(self, suffix:str)->None:
-        np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),     self.three_d_image)
-        np.save(os.path.join(self.output_dir, f'image_skewed{suffix}.npy'),   self.skewed_three_d_image)
-        # np.save(os.path.join(self.output_dir, f"flow_for_mask{suffix}.npy"),  self.scaled_flow_for_mask)
-        np.save(os.path.join(self.output_dir, f"flow_for_image{suffix}.npy"), self.scaled_flow_for_image)
-        np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),      self.three_d_binary_mask.astype(bool))
-        np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),    self.skewed_three_d_binary_mask.astype(bool))
+        np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),        self.three_d_image)
+        np.save(os.path.join(self.output_dir, f'image_skewed{suffix}.npy'),      self.skewed_three_d_image)
+        # np.save(os.path.join(self.output_dir, f"flow_for_mask{suffix}.npy"),     self.scaled_flow_for_mask)
+        np.save(os.path.join(self.output_dir, f"flow_for_image{suffix}.npy"),    self.scaled_flow_for_image)
+        np.save(os.path.join(self.output_dir, f'mask_orig{suffix}.npy'),         self.three_d_binary_mask.astype(bool))
+        np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),       self.skewed_three_d_binary_mask.astype(bool))
+        np.save(os.path.join(self.output_dir, f'extra_mask_skewed{suffix}.npy'), self.skewed_extra_three_d_binary_mask.astype(bool))
 
     def _interp_to_fill_nans(self, flow:np.ndarray, patchify_step:int=8, patch_size_x:int=10, patch_size_y:int=10) -> None:
         
