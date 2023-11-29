@@ -19,7 +19,7 @@ for r in [ 0.7]:
                         output_dir=output_dir, 
                         template_3dimage_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_arr_raw.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_arr_raw.npy",
                         template_mask_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_voxels_mask_smooth.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_voxels_mask_smooth.npy",
-                        extra_mask_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_voxels_mask_smooth.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_voxels_mask_smooth.npy",
+                        template_extra_mask_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_voxels_mask_smooth.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_voxels_mask_smooth.npy",
                         num_frames=6,
                         zero_outside_mask=True,
                         blur_around_mask_radious=20,
