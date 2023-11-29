@@ -3,12 +3,12 @@
 from cardio_volume_skewer import create_skewed_sequences
 import numpy as np
 import os
-output_dir="/home/shahar/cardio_corr/my_packages/cardio_volume_skewer_project/cardio_volume_skewer/outputs/magix_ts_30"
+output_dir="/home/shahar/cardio_corr/my_packages/cardio_volume_skewer_project/cardio_volume_skewer/outputs/magix_ts_30_test_scale_bug_5"
 for r in [ 0.7]:
-    for h in [0.8]:#0.8, 0.825]:
-        for theta1 in [-40.0]:#-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5]:
-            for theta2 in  [0.0]:#[-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5]:
-                if theta1==theta2:
+    for h in [0.85]:#0.8, 0.825]:
+        for theta1 in [0.0]:#-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5]:
+            for theta2 in  [45.0]:#[-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5]:
+                if False: # theta1==theta2:
                     print(theta1,theta2,"skip")
                 # elif (theta1 in (0.0,-5.0,5.0) and theta2 in (0.0,-5.0,5.0)):
                 #     print("skip")
@@ -17,11 +17,12 @@ for r in [ 0.7]:
                     paths = create_skewed_sequences(
                         r1s_end=r, r2s_end=r, theta1s_end=theta1, theta2s_end=theta2, hs_end=h,
                         output_dir=output_dir, 
-                        template_3dimage_path="/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_arr_raw.npy",
-                        template_mask_path="/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_voxels_mask_smooth.npy",
+                        template_3dimage_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_arr_raw.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_arr_raw.npy",
+                        template_mask_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_voxels_mask_smooth.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_voxels_mask_smooth.npy",
+                        extra_mask_path="/home/shahar/cardio_corr/outputs/magix/synthetic_dataset133/28/orig/voxels/xyz_voxels_mask_smooth.npy",#"/home/shahar/data/cardiac_3d_data_magix/30/orig/voxels/xyz_voxels_mask_smooth.npy",
                         num_frames=6,
                         zero_outside_mask=True,
-                        blur_around_mask_radious=10,
+                        blur_around_mask_radious=20,
                         theta_distribution_method="linear")
                 # else:
                 #     print("skip")
