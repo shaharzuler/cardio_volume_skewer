@@ -14,6 +14,8 @@ import patchify
 
 import three_d_data_manager
 
+from .error_analysis_tools.error_analysis_coordinate_system import ErrorAnalysisCoordinateSystem
+
 
 class VolumeSkewer:
     def __init__(self, save_nrrd:bool=True, save_npy:bool=True, zero_outside_mask:bool=True, blur_around_mask_radious:int=0, warping_borders_pad='zeros', image_warping_interp_mode='bilinear', mask_warping_interp_mode='nearest', theta_changing_method='linear'):
@@ -60,6 +62,24 @@ class VolumeSkewer:
         self.flow_field_rotated = self._rotate_flow(flow_field, np.linalg.inv(self.main_rotation_matrix))
         self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_shell_vertices_mean)
         self.flow_for_mask = self._interp_to_fill_nans(self.flow_for_mask)
+        self.error_analysis_coordinate_system = self._get_error_analysis_coordinate_system((self.x_flow, self.y_flow, self.z_flow))
+
+
+    def _get_error_analysis_coordinate_system(self, required_shape): # TODO: _crop_flow_by_mask_center() and _rotate_flow() and interp_to_fill_nans() can be moved to flow_n_corr_utils and then ErrorAnalysisCoordinateSystem will preform rot and crop internally and then returned holding the relevant coordinates systems.
+        error_analysis_coordinate_system = ErrorAnalysisCoordinateSystem(required_shape)
+        radial_coordinate_base_rotated = self._rotate_flow(error_analysis_coordinate_system.radial_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        radial_coordinate_base_cropped = self._crop_flow_by_mask_center(radial_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        radial_coordinate_base_filled = self._interp_to_fill_nans(radial_coordinate_base_cropped)
+        
+        circumferential_coordinate_base_rotated = self._rotate_flow(error_analysis_coordinate_system.circumferential_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        circumferential_coordinate_base_cropped = self._crop_flow_by_mask_center(circumferential_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        circumferential_coordinate_base_filled = self._interp_to_fill_nans(circumferential_coordinate_base_cropped)
+        
+        longitudinal_coordinate_base_rotated = self._rotate_flow(error_analysis_coordinate_system.longitudinal_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        longitudinal_coordinate_base_cropped = self._crop_flow_by_mask_center(longitudinal_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        longitudinal_coordinate_base_filled = self._interp_to_fill_nans(longitudinal_coordinate_base_cropped)
+
+        return (radial_coordinate_base_filled, circumferential_coordinate_base_filled, longitudinal_coordinate_base_filled) 
 
     def _get_thetas(self, theta1:float, theta2:float) -> np.ndarray:
         epsilon = 0.1
@@ -134,6 +154,10 @@ class VolumeSkewer:
         np.save(os.path.join(self.output_dir, f'extra_mask_orig{suffix}.npy'),   self.extra_three_d_binary_mask.astype(bool))
         np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),       self.skewed_three_d_binary_mask.astype(bool))
         np.save(os.path.join(self.output_dir, f'extra_mask_skewed{suffix}.npy'), self.skewed_extra_three_d_binary_mask.astype(bool))
+
+        np.save(os.path.join(self.output_dir, f'error_radial_coordinates{suffix}.npy'), self.error_analysis_coordinate_system[0])
+        np.save(os.path.join(self.output_dir, f'error_circumferential_coordinates{suffix}.npy'), self.error_analysis_coordinate_system[1])
+        np.save(os.path.join(self.output_dir, f'error_longitudinal_coordinates{suffix}.npy'), self.error_analysis_coordinate_system[2])
 
     def _interp_to_fill_nans(self, flow:np.ndarray, patchify_step:int=8, patch_size_x:int=10, patch_size_y:int=10) -> None:
         
