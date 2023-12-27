@@ -107,5 +107,9 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
     template_synthetic_extra_mask_path = os.path.join(output_dir, f"extra_mask_orig_{output_subdir}.npy")
     unlabeled_synthetic_extra_mask_path = os.path.join(output_dir, f"extra_mask_skewed_{output_subdir}.npy")
     synthetic_flow_path = os.path.join(output_dir, f"flow_for_image_{output_subdir}.npy")
+    error_radial_coordinates_path = os.path.join(output_dir, f"error_radial_coordinates_{output_subdir}.npy")
+    error_circumferential_coordinates_path = os.path.join(output_dir, f"error_circumferential_coordinates_{output_subdir}.npy") 
+    error_longitudinal_coordinates_path = os.path.join(output_dir, f"error_longitudinal_coordinates_{output_subdir}.npy")
 
-    return template_synthetic_image_path, unlabeled_synthetic_image_path, template_synthetic_mask_path, unlabeled_synthetic_mask_path, template_synthetic_extra_mask_path, unlabeled_synthetic_extra_mask_path, synthetic_flow_path
+    return template_synthetic_image_path, unlabeled_synthetic_image_path, template_synthetic_mask_path, unlabeled_synthetic_mask_path, template_synthetic_extra_mask_path, unlabeled_synthetic_extra_mask_path, synthetic_flow_path, error_radial_coordinates_path, error_circumferential_coordinates_path, error_longitudinal_coordinates_path
+    
