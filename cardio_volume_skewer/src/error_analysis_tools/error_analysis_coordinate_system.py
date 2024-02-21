@@ -1,13 +1,24 @@
 from typing import Tuple
 import numpy as np
-from matplotlib import pyplot as plt
+
+import flow_n_corr_utils
 
 class ErrorAnalysisCoordinateSystem:
-    def __init__(self, required_shape: Tuple) -> None:
+    def __init__(self, required_shape: Tuple, x, y, z, center, orig_shell_vertices_mean, main_rotation_matrix, flow_rotator) -> None:
         self.shape = required_shape
+        self.x = x
+        self.y = y
+        self.z = z
+        self.center = center
+        self.orig_shell_vertices_mean = orig_shell_vertices_mean
+        self.main_rotation_matrix = main_rotation_matrix
+        self.flow_rotator = flow_rotator
+
         self.radial_coordinate_base = self.compute_radial_coordinate_base()
         self.longitudinal_coordinate_base = self.compute_longitudinal_coordinate_base()
         self.circumferential_coordinate_base = self.compute_circumferential_coordinate_base()
+
+        self.adjust_all_coordinates()
 
     def compute_radial_coordinate_base(self):
         x, y = np.meshgrid(np.arange(self.shape[1]), np.arange(self.shape[0]))
@@ -30,8 +41,32 @@ class ErrorAnalysisCoordinateSystem:
     def compute_circumferential_coordinate_base(self):
         circumferential_coordinate_base = np.cross(self.radial_coordinate_base, self.longitudinal_coordinate_base, axis=3)
         return circumferential_coordinate_base
+   
 
+    def adjust_single_coordinates_axis(self, axis_coordinate_base):
+        axis_coordinate_base_rotated = self.flow_rotator.rotate_flow(axis_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        axis_coordinate_base_cropped = flow_n_corr_utils.crop_flow_by_mask_center(self.center, self.x, self.y, self.z, axis_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        axis_coordinate_base_filled = flow_n_corr_utils.interp_to_fill_nans(axis_coordinate_base_cropped)
+        return axis_coordinate_base_filled
+
+
+    def adjust_all_coordinates(self):
+        self.radial_coordinate_base = self.adjust_single_coordinates_axis(self.radial_coordinate_base)
+        self.circumferential_coordinate_base = self.adjust_single_coordinates_axis(self.circumferential_coordinate_base)
+        self.longitudinal_coordinate_base = self.adjust_single_coordinates_axis(self.longitudinal_coordinate_base)
         
+        # radial_coordinate_base_rotated = self.flow_rotator.rotate_flow(self.radial_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        # radial_coordinate_base_cropped = flow_n_corr_utils.crop_flow_by_mask_center(self.center, self.x, self.y, self.z, radial_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        # radial_coordinate_base_filled = flow_n_corr_utils.interp_to_fill_nans(radial_coordinate_base_cropped)
+        # self.radial_coordinate_base = radial_coordinate_base_filled
+        
+        # circumferential_coordinate_base_rotated = self.flow_rotator.rotate_flow(self.circumferential_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        # circumferential_coordinate_base_cropped = flow_n_corr_utils.crop_flow_by_mask_center(self.center, self.x, self.y, self.z, circumferential_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        # circumferential_coordinate_base_filled = flow_n_corr_utils.interp_to_fill_nans(circumferential_coordinate_base_cropped)
+        # self.circumferential_coordinate_base = circumferential_coordinate_base_filled
 
-
+        # longitudinal_coordinate_base_rotated = self.flow_rotator.rotate_flow(self.longitudinal_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
+        # longitudinal_coordinate_base_cropped = flow_n_corr_utils.crop_flow_by_mask_center(self.center, self.x, self.y, self.z, longitudinal_coordinate_base_rotated, self.orig_shell_vertices_mean)
+        # longitudinal_coordinate_base_filled = flow_n_corr_utils.interp_to_fill_nans(longitudinal_coordinate_base_cropped)
+        # self.longitudinal_coordinate_base = longitudinal_coordinate_base_filled
 

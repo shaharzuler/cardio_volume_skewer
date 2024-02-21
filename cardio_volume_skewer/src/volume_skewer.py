@@ -11,8 +11,10 @@ import nrrd
 import torch
 from torch import nn
 import patchify
+from matplotlib import pyplot as plt
 
 import three_d_data_manager
+import flow_n_corr_utils
 
 from .error_analysis_tools.error_analysis_coordinate_system import ErrorAnalysisCoordinateSystem
 
@@ -59,49 +61,13 @@ class VolumeSkewer:
         thetas = self._get_thetas(theta1, theta2)
         flow_field = self._create_flow_for_r_and_scale(flow_field, rs, thetas)
         self.flow_field = self._stretch_flow_vertically(flow_field)
-        self.flow_field_rotated = self._rotate_flow(flow_field, np.linalg.inv(self.main_rotation_matrix))
-        self.flow_for_mask = self._crop_flow_by_mask_center(self.flow_field_rotated, self.orig_shell_vertices_mean)
-        self.flow_for_mask = self._interp_to_fill_nans(self.flow_for_mask)
+
+        self.flow_rotator = flow_n_corr_utils.FlowRotator(self.x_flow, self.y_flow, self.z_flow, self.center_flow)
+        self.flow_field_rotated = self.flow_rotator.rotate_flow(flow_field, np.linalg.inv(self.main_rotation_matrix))
+        self.flow_for_mask = flow_n_corr_utils.crop_flow_by_mask_center(self.center, self.x, self.y, self.z, self.flow_field_rotated, self.orig_shell_vertices_mean)
+        self.flow_for_mask = flow_n_corr_utils.interp_to_fill_nans(self.flow_for_mask)
         self.error_analysis_coordinate_system = self._get_error_analysis_coordinate_system((self.x_flow, self.y_flow, self.z_flow))
-
-
-    def _get_error_analysis_coordinate_system(self, required_shape): # TODO: _crop_flow_by_mask_center() and _rotate_flow() and interp_to_fill_nans() can be moved to flow_n_corr_utils and then ErrorAnalysisCoordinateSystem will preform rot and crop internally and then returned holding the relevant coordinates systems.
-        error_analysis_coordinate_system = ErrorAnalysisCoordinateSystem(required_shape)
-        radial_coordinate_base_rotated = self._rotate_flow(error_analysis_coordinate_system.radial_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
-        radial_coordinate_base_cropped = self._crop_flow_by_mask_center(radial_coordinate_base_rotated, self.orig_shell_vertices_mean)
-        radial_coordinate_base_filled = self._interp_to_fill_nans(radial_coordinate_base_cropped)
-        
-        circumferential_coordinate_base_rotated = self._rotate_flow(error_analysis_coordinate_system.circumferential_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
-        circumferential_coordinate_base_cropped = self._crop_flow_by_mask_center(circumferential_coordinate_base_rotated, self.orig_shell_vertices_mean)
-        circumferential_coordinate_base_filled = self._interp_to_fill_nans(circumferential_coordinate_base_cropped)
-        
-        longitudinal_coordinate_base_rotated = self._rotate_flow(error_analysis_coordinate_system.longitudinal_coordinate_base, np.linalg.inv(self.main_rotation_matrix))
-        longitudinal_coordinate_base_cropped = self._crop_flow_by_mask_center(longitudinal_coordinate_base_rotated, self.orig_shell_vertices_mean)
-        longitudinal_coordinate_base_filled = self._interp_to_fill_nans(longitudinal_coordinate_base_cropped)
-
-        return (radial_coordinate_base_filled, circumferential_coordinate_base_filled, longitudinal_coordinate_base_filled) 
-
-    def _get_thetas(self, theta1:float, theta2:float) -> np.ndarray:
-        epsilon = 0.1
-        if self.theta_changing_method == "linear":
-            thetas = np.linspace(theta1, theta2, self.z_flow)
-        elif self.theta_changing_method == "geometric":
-            max_ = abs(theta2-theta1)
-            thetas = np.geomspace(epsilon, max_, self.z_flow) 
-            if theta1 > theta2:
-                thetas = thetas[::-1]
-            thetas = thetas + min(abs(theta1), abs(theta2)) - epsilon
-        elif "random" in self.theta_changing_method:
-            noise_mag = float(self.theta_changing_method.split("_")[-2])
-            noise_bias = float(self.theta_changing_method.split("_")[-1])
-            progress = (np.random.rand(self.z_flow) - noise_bias) * noise_mag
-            thetas = np.cumsum(progress)
-        from matplotlib import pyplot as plt
-        plt.plot(thetas)
-        plt.title("thetas")
-        plt.savefig(os.path.join(self.output_dir, "thetas.jpg"))
-        return thetas
-
+    
     def handle_outside_mask(self):
         mask = self.skewed_three_d_binary_mask.astype(bool)
         
@@ -121,22 +87,6 @@ class VolumeSkewer:
 
         return self.scaled_flow_for_mask
 
-    def flow_warp(self, image:np.array, flow:np.array, warping_borders_pad:str, warping_interp_mode:str)->np.array: #TODO move to flow utils package
-        flow = np.rollaxis(flow,-1)
-        flow = torch.tensor(flow)
-        flow = torch.unsqueeze(flow,0)
-        image = torch.tensor(image)
-        image = torch.unsqueeze(torch.unsqueeze(image,0),0)
-
-        B, _, H, W, D = flow.size()
-        flow = torch.flip(flow, [1]) # flow is now z, y, x
-        base_grid = self._mesh_grid(B, H, W, D).type_as(image)  # B2HW
-        grid_plus_flow = base_grid + flow
-        v_grid = self._norm_grid(grid_plus_flow)  # BHW2
-        image_warped = nn.functional.grid_sample(image, v_grid, mode=warping_interp_mode, padding_mode=warping_borders_pad, align_corners=False)
-
-        return image_warped[0,0,:,:,:].cpu().numpy()
-
     def save_nrrds(self, suffix:str)->None:
         # nrrd.write(os.path.join(self.output_dir, f'image_orig{suffix}.nrrd'),        self.three_d_image)
         nrrd.write(os.path.join(self.output_dir, f'image_skewed{suffix}.nrrd'),      self.skewed_three_d_image)
@@ -144,7 +94,6 @@ class VolumeSkewer:
         nrrd.write(os.path.join(self.output_dir, f'mask_skewed{suffix}.nrrd'),       self.skewed_three_d_binary_mask.astype(float))
         nrrd.write(os.path.join(self.output_dir, f'extra_mask_skewed{suffix}.nrrd'), self.skewed_extra_three_d_binary_mask.astype(float))
 
-       
     def save_npys(self, suffix:str)->None:
         np.save(os.path.join(self.output_dir, f'image_orig{suffix}.npy'),        self.three_d_image)
         np.save(os.path.join(self.output_dir, f'image_skewed{suffix}.npy'),      self.skewed_three_d_image)
@@ -155,45 +104,9 @@ class VolumeSkewer:
         np.save(os.path.join(self.output_dir, f'mask_skewed{suffix}.npy'),       self.skewed_three_d_binary_mask.astype(bool))
         np.save(os.path.join(self.output_dir, f'extra_mask_skewed{suffix}.npy'), self.skewed_extra_three_d_binary_mask.astype(bool))
 
-        np.save(os.path.join(self.output_dir, f'error_radial_coordinates{suffix}.npy'), self.error_analysis_coordinate_system[0])
-        np.save(os.path.join(self.output_dir, f'error_circumferential_coordinates{suffix}.npy'), self.error_analysis_coordinate_system[1])
-        np.save(os.path.join(self.output_dir, f'error_longitudinal_coordinates{suffix}.npy'), self.error_analysis_coordinate_system[2])
-
-    def _interp_to_fill_nans(self, flow:np.ndarray, patchify_step:int=8, patch_size_x:int=10, patch_size_y:int=10) -> None:
-        
-        unpatchify_output_x = flow.shape[0] - (flow.shape[0] - patch_size_x) % patchify_step
-        unpatchify_output_y = flow.shape[1] - (flow.shape[1] - patch_size_y) % patchify_step
-
-        for axis in range(3):
-            print(f"axis {axis} out of 2")
-            for z_plane_i in range(flow.shape[2]):
-                if z_plane_i%10==0:
-                    print(f'z plane {z_plane_i} out of {flow.shape[2]}')
-                z_plane = flow[:,:,z_plane_i,axis]
-                patches = patchify.patchify(z_plane, (patch_size_x, patch_size_y), step=patchify_step)    
-                flow = self._interp_in_patches(flow, patches, axis, z_plane_i, unpatchify_output_x, unpatchify_output_y)
-                unpatchify_dim_matches_scan_dim = (flow.shape[:2] == (unpatchify_output_x, unpatchify_output_y))
-                if not(unpatchify_dim_matches_scan_dim):
-                    flow[unpatchify_output_x-2:, :, z_plane_i, axis] = self._interp_missing_values(flow[unpatchify_output_x-2:, :, z_plane_i, axis], interpolator=LinearNDInterpolator)
-                    flow[:, unpatchify_output_y-2:, z_plane_i, axis] = self._interp_missing_values(flow[:, unpatchify_output_y-2:, z_plane_i, axis], interpolator=LinearNDInterpolator)
-
-        return flow
-
-    def _interp_in_patches(self, flow:np.array, patches:np.array, axis:int, z_plane_i:int, unpatchify_output_x:int, unpatchify_output_y:int) -> None:
-        for i in range(patches.shape[0]):
-            for j in range(patches.shape[1]):
-                patch_with_nans = patches[i, j]
-                patch_wo_nans = self._interp_missing_values(patch_with_nans, interpolator=LinearNDInterpolator)
-                patches[i, j] = patch_wo_nans
-        flow_for_axis = patchify.unpatchify(patches, (unpatchify_output_x, unpatchify_output_y))
-        flow[:unpatchify_output_x,:unpatchify_output_y, z_plane_i, axis] = flow_for_axis
-        return flow
-
-    def _crop_flow_by_mask_center(self, flow_field_rotated:np.array, orig_vertices_mean:np.array) -> np.array:
-        start = (2*self.center - orig_vertices_mean).astype(int)
-        end = (2*self.center - orig_vertices_mean + np.array((self.x, self.y, self.z))).astype(int)
-        flow_field_cropped = flow_field_rotated[ start[0,0]:end[0,0], start[0,1]:end[0,1], start[0,2]:end[0,2], : ]
-        return flow_field_cropped
+        np.save(os.path.join(self.output_dir, f'error_radial_coordinates{suffix}.npy'), self.error_analysis_coordinate_system.radial_coordinate_base)
+        np.save(os.path.join(self.output_dir, f'error_circumferential_coordinates{suffix}.npy'), self.error_analysis_coordinate_system.circumferential_coordinate_base)
+        np.save(os.path.join(self.output_dir, f'error_longitudinal_coordinates{suffix}.npy'), self.error_analysis_coordinate_system.longitudinal_coordinate_base)
 
     def _compute_main_rotation(self)->np.array:
         shell = three_d_data_manager.extract_segmentation_envelope(self.three_d_binary_mask)
@@ -248,87 +161,44 @@ class VolumeSkewer:
             edges_coords_moved = (edges_coords_centered @ transform_matrix) + self.center_flow
             flow_field[edges_coords[:,0], edges_coords[:,1], edges_coords[:,2]] = edges_coords_moved - edges_coords
 
-            flow_field[:, :, xy_plane_i, 0] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 0].copy(), LinearNDInterpolator)
-            flow_field[:, :, xy_plane_i, 1] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 1].copy(), LinearNDInterpolator)
-            flow_field[:, :, xy_plane_i, 2] = self._interp_missing_values(flow_field[:, :, xy_plane_i, 2].copy(), LinearNDInterpolator)
+            flow_field[:, :, xy_plane_i, 0] = flow_n_corr_utils.interp_missing_values(flow_field[:, :, xy_plane_i, 0].copy(), LinearNDInterpolator)
+            flow_field[:, :, xy_plane_i, 1] = flow_n_corr_utils.interp_missing_values(flow_field[:, :, xy_plane_i, 1].copy(), LinearNDInterpolator)
+            flow_field[:, :, xy_plane_i, 2] = flow_n_corr_utils.interp_missing_values(flow_field[:, :, xy_plane_i, 2].copy(), LinearNDInterpolator)
         return flow_field
     
-    def _interp_missing_values(self, flow_field_axis:np.array, interpolator)->np.array:
-        nan_indices = np.isnan(flow_field_axis)
-        main_points_indices = np.logical_not(nan_indices)
-        main_points_data = flow_field_axis[main_points_indices]
-        if main_points_data.shape[0] == 0:
-            flow_field_axis[nan_indices] = 0.
-        elif main_points_data.shape[0] < 3:
-            flow_field_axis[nan_indices] = main_points_data.mean()
-        else:
-            try: 
-                interp = interpolator(list(zip(*main_points_indices.nonzero())), main_points_data) 
-                flow_field_axis[nan_indices] = interp(*nan_indices.nonzero())
-            except QhullError as e:
-                flow_field_axis[nan_indices] = main_points_data.mean()
-                print(f"Can't interpolate to fill nans: \n{e}")
-
-        return flow_field_axis
-
     def _stretch_flow_vertically(self, flow_field:np.array)->np.array:
         z0_to_center = np.linspace((-(self.z_flow/2) * self.h) + (self.z_flow/2), 0, self.z_flow//2)
         flow_field[:, :, :self.z_flow//2, 2] = z0_to_center
         flow_field[:, :, self.z_flow//2:, 2] = -z0_to_center[::-1]
         return flow_field
 
-    def _rotate_flow(self, flow_field:np.array, rotation_matrix:np.array)->np.array:
-        xx, yy, zz = np.meshgrid(np.arange(self.x_flow),
-                                np.arange(self.y_flow),
-                                np.arange(self.z_flow), indexing='ij')
-        coords = np.stack(
-            (xx-self.center_flow[0,0], yy-self.center_flow[0,1], zz-self.center_flow[0,2]),
-            axis=-1
-            ) 
-        rot_coords = self._rotate_coords(coords, rotation_matrix)
+    def _get_error_analysis_coordinate_system(self, required_shape): 
+        error_analysis_coordinate_system = ErrorAnalysisCoordinateSystem(
+            required_shape, 
+            self.x, self.y, self.z, 
+            self.center, self.orig_shell_vertices_mean,
+            self.main_rotation_matrix, self.flow_rotator
+            )
+        return error_analysis_coordinate_system
 
-        valid_indices, valid_coords = self._get_valid_coords_and_indices(rot_coords)
-        valid_flow_vals = flow_field[xx, yy, zz][valid_indices]
+    def _get_thetas(self, theta1:float, theta2:float) -> np.ndarray:
+        epsilon = 0.1
+        if self.theta_changing_method == "linear":
+            thetas = np.linspace(theta1, theta2, self.z_flow)
+        elif self.theta_changing_method == "geometric":
+            max_ = abs(theta2-theta1)
+            thetas = np.geomspace(epsilon, max_, self.z_flow) 
+            if theta1 > theta2:
+                thetas = thetas[::-1]
+            thetas = thetas + min(abs(theta1), abs(theta2)) - epsilon
+        elif "random" in self.theta_changing_method:
+            noise_mag = float(self.theta_changing_method.split("_")[-2])
+            noise_bias = float(self.theta_changing_method.split("_")[-1])
+            progress = (np.random.rand(self.z_flow) - noise_bias) * noise_mag
+            thetas = np.cumsum(progress)
 
-        flow_field_rotated = self._rotate_flow_vals(valid_coords, valid_flow_vals, rotation_matrix)
+        plt.plot(thetas)
+        plt.title("thetas")
+        plt.savefig(os.path.join(self.output_dir, "thetas.jpg"))
+        return thetas
 
-        return flow_field_rotated
-        
-    def _rotate_coords(self, coords:np.array, rotation_matrix:np.array)->np.array:
-        rot_coords = np.dot(coords.reshape((-1, 3)), rotation_matrix)
-        rot_coords = rot_coords.reshape(self.x_flow, self.y_flow, self.z_flow, 3)
-        rot_coords[:, :, :, 0] += self.center_flow[0, 0]
-        rot_coords[:, :, :, 1] += self.center_flow[0, 1]
-        rot_coords[:, :, :, 2] += self.center_flow[0, 2]
-        return rot_coords
-
-    def _get_valid_coords_and_indices(self, rot_coords:np.array)->Tuple[np.array,np.array]:
-        valid_indices = np.all((rot_coords >= 0) & (rot_coords+0.5 < (self.x_flow, self.y_flow, self.z_flow)), axis=-1)
-        valid_coords = np.round(rot_coords[valid_indices]).astype(int) 
-        return valid_indices, valid_coords
-
-    def _rotate_flow_vals(self, valid_coords:np.array, valid_flow_vals:np.array, rotation_matrix:np.array)->np.array:
-        flow_field_rotated = np.empty([self.x_flow, self.y_flow, self.z_flow, 3])  
-        flow_field_rotated[:] = np.nan
-        flow_field_rotated[valid_coords[:, 0], valid_coords[:, 1], valid_coords[:, 2]] = (np.dot(valid_flow_vals, rotation_matrix))
-        return flow_field_rotated
-
-    def _mesh_grid(self, B:int, H:int, W:int, D:int)->np.array: #TODO move to flow utils package
-        # batches not implented
-        x = torch.arange(H)
-        y = torch.arange(W)
-        z = torch.arange(D)
-        mesh = torch.stack(torch.meshgrid(x, y, z)[::-1], 0) 
-
-        mesh = mesh.unsqueeze(0)
-        return mesh.repeat([B,1,1,1,1])
-
-    def _norm_grid(self, v_grid:np.array)->np.array: #TODO move to flow utils package
-        """scale grid to [-1,1]"""
-        _, _, H, W, D = v_grid.size()
-        v_grid_norm = torch.zeros_like(v_grid)
-        v_grid_norm[:, 0, :, :, :] = (2.0 * v_grid[:, 0, :, :, :] / (D - 1)) - 1.0 
-        v_grid_norm[:, 1, :, :, :] = (2.0 * v_grid[:, 1, :, :, :] / (W - 1)) - 1.0
-        v_grid_norm[:, 2, :, :, :] = (2.0 * v_grid[:, 2, :, :, :] / (H - 1)) - 1.0 
-        
-        return v_grid_norm.permute(0, 2, 3, 4, 1)

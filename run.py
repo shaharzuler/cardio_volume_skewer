@@ -17,13 +17,14 @@ for r in [ 0.7]:
                     paths = create_skewed_sequences(
                         r1s_end=r, r2s_end=r, theta1s_end=theta1, theta2s_end=theta2, hs_end=h,
                         output_dir=output_dir, 
-                        template_3dimage_path="/home/shahar/cardio_corr/outputs/magix/miccai_experiments/tot_torsion_50_torsion_version_3/dataset_tot_torsion_50_torsion_version_3/28/orig/voxels/xyz_arr_raw.npy",
-                        template_mask_path="/home/shahar/cardio_corr/outputs/magix/miccai_experiments/tot_torsion_50_torsion_version_3/dataset_tot_torsion_50_torsion_version_3/28/orig/voxels/xyz_voxels_mask_smooth.npy",
-                        template_extra_mask_path="/home/shahar/cardio_corr/outputs/magix/miccai_experiments/tot_torsion_50_torsion_version_3/dataset_tot_torsion_50_torsion_version_3/28/orig/voxels/xyz_voxels_extra_mask_smooth.npy",
+                        template_3dimage_path="/home/shahar/home/shahar/projects/CardioSpecrum_inference_project/CardioSpectrum_inference/sample_scan/output/magix_sample_dataset/28/orig/voxels/xyz_arr_raw.npy",
+                        template_mask_path="/home/shahar/home/shahar/projects/CardioSpecrum_inference_project/CardioSpectrum_inference/sample_scan/output/magix_sample_dataset/28/orig/voxels/xyz_voxels_mask_smooth.npy",
+                        template_extra_mask_path="/home/shahar/home/shahar/projects/CardioSpecrum_inference_project/CardioSpectrum_inference/sample_scan/output/magix_sample_dataset/28/orig/voxels/xyz_voxels_extra_mask_smooth.npy",
                         num_frames=6,
                         zero_outside_mask=True,
                         blur_around_mask_radious=20,
-                        theta_distribution_method="linear")
+                        theta_distribution_method="linear",
+                        scale_down_by=4)
                 # else:
                 #     print("skip")
 
