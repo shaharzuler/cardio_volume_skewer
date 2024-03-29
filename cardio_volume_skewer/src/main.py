@@ -38,6 +38,8 @@ def create_skewed_sequences(r1s_end:float, r2s_end:float, theta1s_end:float, the
     theta2s_start = 0.
     hs_start = 1.0
     ratio_start = 0.
+    theta1s_end = float(theta1s_end)
+    theta2s_end = float(theta2s_end)
     
     r1s     = np.linspace( r1s_start,     r1s_end,     num_frames)
     r2s     = np.linspace( r2s_start,     r2s_end,     num_frames)
