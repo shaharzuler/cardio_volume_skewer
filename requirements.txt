@@ -2,6 +2,6 @@ numpy>=1.19.5
 pynrrd>=1.0.0
 scipy>=1.10.1
 opencv-python>=4.7.0.72
-torch>=2.0.1
+torch>=1.12.1
 three_d_data_manager @ git+https://github.com/shaharzuler/three_d_data_manager.git
 flow_n_corr_utils @ git+https://github.com/shaharzuler/flow_n_corr_utils.git
