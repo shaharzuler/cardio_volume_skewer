@@ -11,16 +11,16 @@ pip install git+https://github.com/shaharzuler/cardio_volume_skewer
 
 ## Sample Outputs:
 
-Main sections of generated sequence:
-
+<!-- Main sections of generated sequence: -->
+<!--  -->
 ![main sections of generated sequence](readme_data/vid_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
-
-Main sections of generated LV sequence:
-
+<!--  -->
+<!-- Main sections of generated LV sequence: -->
+<!--  -->
 ![main sections of generated LV mask sequence](readme_data/vid_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
-
-Main sections of generated myocardioum sequence:
-
+<!-- 
+Main sections of generated myocardioum sequence: -->
+<!--  -->
 ![main sections of generated myocardioum mask sequence](readme_data/vid_extra_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
 
 ## Overview
