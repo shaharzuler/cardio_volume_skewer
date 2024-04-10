@@ -7,7 +7,7 @@ import cv2
 
 def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq:List[np.array], filename:str, crop_pad:int=0, gap_bet_images=16) -> None:
     print(f"Saving video {filename}")
-    frameSize = z_seq[0].shape[0] + gap_bet_images + y_seq[0].shape[0], z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1]
+    frameSize = max(z_seq[0].shape[0], x_seq[0].shape[0]) + gap_bet_images + y_seq[0].shape[0], z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1]
     out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 10, (frameSize[1],frameSize[0]))
     max_val = max(np.array(x_seq).max(), np.array(y_seq).max(), np.array(z_seq).max())
     min_val = min(np.array(x_seq).min(), np.array(y_seq).min(), np.array(z_seq).min())
@@ -20,7 +20,7 @@ def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq
         frame_z_norm = ( ( (frame_z - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)
 
         frame[                                   : frame_z.shape[0]                                    ,                                   : frame_z.shape[1]                                     ] = frame_z_norm
-        frame[                                   : frame_z.shape[0]                                    , frame_z.shape[1] + gap_bet_images : frame_z.shape[1] + gap_bet_images + frame_x.shape[1] ] = frame_x_norm
+        frame[                                   : frame_x.shape[0]                                    , frame_z.shape[1] + gap_bet_images : frame_z.shape[1] + gap_bet_images + frame_x.shape[1] ] = frame_x_norm
         frame[ frame_z.shape[0] + gap_bet_images : frame_z.shape[0] + gap_bet_images + frame_y.shape[0], frame_z.shape[1] + gap_bet_images : frame_z.shape[1] + gap_bet_images + frame_y.shape[1] ] = frame_y_norm
 
         frame = cv2.applyColorMap(frame.astype(np.uint8), cv2.COLORMAP_BONE)
@@ -29,7 +29,7 @@ def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq
     out.release()
 
     if crop_pad>0:
-        frameSize = z_seq[0].shape[0] + gap_bet_images + y_seq[0].shape[0] - 4 * crop_pad, z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1] - 4 * crop_pad
+        frameSize = max(z_seq[0].shape[0],x_seq[0].shape[0]) + gap_bet_images + y_seq[0].shape[0] - 4 * crop_pad, z_seq[0].shape[1] + gap_bet_images + x_seq[0].shape[1] - 4 * crop_pad
         out = cv2.VideoWriter("vid_crop.avi", cv2.VideoWriter_fourcc(*'XVID'), 10, (frameSize[1],frameSize[0]))
         max_val = max(np.array(x_seq).max(), np.array(y_seq).max(), np.array(z_seq).max())
         min_val = min(np.array(x_seq).min(), np.array(y_seq).min(), np.array(z_seq).min())
@@ -42,7 +42,7 @@ def create_video_from_xys_seqs(x_seq:List[np.array], y_seq:List[np.array], z_seq
             frame_z_norm = ( ( (frame_x - min_val) / (max_val - min_val) ) * 255).astype(np.uint8)[crop_pad:-crop_pad, crop_pad:-crop_pad]
 
             frame[                                        : frame_z_norm.shape[0]                                         ,                                        : frame_z_norm.shape[1]                                          ] = frame_z_norm
-            frame[                                        : frame_z_norm.shape[0]                                         , frame_z_norm.shape[1] + gap_bet_images : frame_z_norm.shape[1] + gap_bet_images + frame_x_norm.shape[1] ] = frame_x_norm
+            frame[                                        : frame_x_norm.shape[0]                                         , frame_z_norm.shape[1] + gap_bet_images : frame_z_norm.shape[1] + gap_bet_images + frame_x_norm.shape[1] ] = frame_x_norm
             frame[ frame_z_norm.shape[0] + gap_bet_images : frame_z_norm.shape[0] + gap_bet_images + frame_y_norm.shape[0], frame_z_norm.shape[1] + gap_bet_images : frame_z_norm.shape[1] + gap_bet_images + frame_y_norm.shape[1] ] = frame_y_norm
 
             frame = cv2.applyColorMap(frame.astype(np.uint8), cv2.COLORMAP_BONE)
