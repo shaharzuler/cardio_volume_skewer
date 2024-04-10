@@ -9,19 +9,10 @@ You can install the package via pip:
 pip install git+https://github.com/shaharzuler/cardio_volume_skewer
 ```
 
-## Sample Outputs:
+## Sample Output:
 
-<!-- Main sections of generated sequence: -->
-<!--  -->
 ![main sections of generated sequence](readme_data/vid_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
-<!--  -->
-<!-- Main sections of generated LV sequence: -->
-<!--  -->
-![main sections of generated LV mask sequence](readme_data/vid_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
-<!-- 
-Main sections of generated myocardioum sequence: -->
-<!--  -->
-![main sections of generated myocardioum mask sequence](readme_data/vid_extra_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
+
 
 ## Overview
 The package offers flexibility through configurable parameters including:
@@ -72,5 +63,15 @@ In addition, the following outputs are provided for the entire sequence:
 
 
 ## Details, Rational and Full Implementation
-For a comprehensive implementation of our paper, utilizing this package along with additional functionalities, please refer to [CardioSpectrum](link) implementation.
+For a comprehensive implementation of our paper, utilizing this package along with additional functionalities, please refer to [CardioSpectrum](https://github.com/shaharzuler/CardioSpectrum) implementation.
  For a detailed explanation of the deformation process and rationale, please consult our [paper](link)
+
+## Sample Masks Outputs
+
+Main sections of generated LV sequence:
+
+![main sections of generated LV mask sequence](readme_data/vid_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
+
+Main sections of generated myocardioum sequence:
+
+![main sections of generated myocardioum mask sequence](readme_data/vid_extra_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
