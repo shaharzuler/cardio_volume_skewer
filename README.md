@@ -1,6 +1,6 @@
 # Cardio Volume Skewer
 
-Cardio Volume Skewer is a Python package designed to generate synthetic 4D sequences of cardiac CT scans from a single 3D image. By implementing the method detailed in our [paper](soon_Link), this package creates a new 3D frame along with 3D optical flow ground truth information through radial, longitudinal, and circumferential deformations around the main axis of the cardiac left ventricle (LV).
+Cardio Volume Skewer is a Python package designed to generate synthetic 4D sequences of cardiac CT scans from a single 3D image. By implementing the method detailed in our [paper](https://arxiv.org/abs/2406.01040), this package creates a new 3D frame along with 3D optical flow ground truth information through radial, longitudinal, and circumferential deformations around the main axis of the cardiac left ventricle (LV).
 
 ## Installation
 
