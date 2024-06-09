@@ -75,3 +75,15 @@ Main sections of generated LV sequence:
 Main sections of generated myocardioum sequence:
 
 ![main sections of generated myocardioum mask sequence](readme_data/vid_extra_mask_thetas_60.0_-20.0_rs_0.9_0.9_h_0.91_linear_mask_True_blur_radious_1.gif)
+
+## Citing
+
+If you find our work useful, please cite us:
+
+```bibtex
+@article{zuler2024synthetic,
+  title={Synthetic Data Generation for 3D Myocardium Deformation Analysis},
+  author={Zuler, Shahar and Raviv, Dan},
+  journal={arXiv preprint arXiv:2406.01040},
+  year={2024}
+}
