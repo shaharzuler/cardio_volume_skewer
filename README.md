@@ -64,7 +64,7 @@ In addition, the following outputs are provided for the entire sequence:
 
 ## Details, Rational and Full Implementation
 For a comprehensive implementation of our paper, utilizing this package along with additional functionalities, please refer to [CardioSpectrum](https://github.com/shaharzuler/CardioSpectrum) implementation.
- For a detailed explanation of the deformation process and rationale, please consult our [paper](link)
+ For a detailed explanation of the deformation process and rationale, please consult [CardioSpectrum paper](https://arxiv.org/abs/2407.03794)
 
 ## Sample Masks Outputs
 
