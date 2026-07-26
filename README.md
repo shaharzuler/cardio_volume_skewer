@@ -4,7 +4,7 @@
 
 📖 **Published chapter:** [Controlled Augmentations of Left Ventricle Deformation for Optical Flow Model Training](https://www.intechopen.com/online-first/1238800)  
 *Artificial Intelligence in Medicine and Surgery – An Exploration of Current Trends, Potential Opportunities, and Evolving Threats, Volume 4*, IntechOpen, 2026.  
-[DOI](https://doi.org/10.5772/intechopen.1014562) · [Preprint](https://arxiv.org/abs/2406.01040)
+DOI: `10.5772/intechopen.1014562` · [Preprint](https://arxiv.org/abs/2406.01040)
 
 ## Installation
 
